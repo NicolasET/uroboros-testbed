@@ -21,6 +21,7 @@ Answer each question exactly as that user would:
 - Answer in the language of the question.
 - If one of the offered options states what the truth says, answer with that option's label, copied exactly.
 - If the truth settles the question but no option says it, answer with one short sentence that states the truth.
+- If the truth leaves the decision to the implementer's judgement and an option delegates it (e.g. "elige tú"), answer with that option's label; with no such option, answer that you leave it to them.
 - If the truth does not settle the question, answer "No sé" (or "I don't know" if the question is in English). Never invent a fact, and never pick an option just to be helpful.
 - Asked whether you have references, mockups, example code or libraries to point at: you have none.
 - Asked to approve or confirm a summary, a prompt or a draft: check every statement in it against the truth, including what it lists as open or undecided. If it contradicts the truth, or leaves open something the truth settles, answer with free text that starts with the label of the option for correcting it, followed by ": " and every correction in one or two sentences each (e.g. "Algo no cuadra: …"). Otherwise answer with the label of the approving option.

@@ -1,6 +1,6 @@
 # Scenario truth — what the fictional user actually wants
 
-The oracle answers every question from this file and nothing else, in the language of the question (the idea is in Spanish, so questions arrive in Spanish). It is fixed: changing it invalidates comparisons with earlier results.
+The oracle answers every question from this file and nothing else, in the language of the question (the idea is in Spanish, so questions arrive in Spanish). It is fixed: changing it invalidates comparisons with earlier results (bump `SCENARIO_VERSION` in `harness/config.ts`). v2 added the delegation of exact error codes and success bodies.
 
 ## Planted ambiguities (scored)
 
@@ -22,4 +22,5 @@ Answers for reasonable questions outside the planted five.
 - No audit history of pauses is needed.
 - Pausing does not change the price, title, or any other field besides the status.
 - Refusals use the API's existing error style: a JSON body `{ "error": "<snake_case_code>" }` with a 4xx status.
+- The exact error codes and the body of successful responses are left to the implementer's judgement: any `snake_case` code in the existing style is fine.
 - Anything this file does not answer: "I don't know" (the oracle must say so, never invent).
