@@ -1,0 +1,3 @@
+node_modules/
+# Workspaces, cloned plugin versions and full transcripts of every run (large, local only).
+runs/

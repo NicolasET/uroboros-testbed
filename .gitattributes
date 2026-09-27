@@ -1,0 +1,4 @@
+* text=auto eol=lf
+# spec-kit writes these files as it wants them (its install manifest hashes them): never convert line endings.
+fixture/.claude/** -text
+fixture/.specify/** -text

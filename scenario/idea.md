@@ -1,0 +1,1 @@
+Quiero que los vendedores puedan pausar una publicación sin perder su ranking, y reanudarla después. Agrégalo a la API de publicaciones como `POST /listings/:id/pause` y `POST /listings/:id/resume`; una publicación pausada tiene status `paused`.

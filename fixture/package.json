@@ -1,0 +1,20 @@
+{
+  "name": "listings-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal marketplace listings API used as the uroboros testbed fixture.",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "eslint": "^10.11.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.1"
+  }
+}
