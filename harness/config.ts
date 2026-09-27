@@ -1,3 +1,4 @@
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +9,12 @@ export const RESULTS_DIR = join(ROOT, 'results');
 /** Local only (gitignored): workspaces and full transcripts of every run. */
 export const RUNS_DIR = join(ROOT, 'runs');
 export const PROBE_PLUGIN_DIR = join(ROOT, 'harness', 'probe-plugin');
+/**
+ * Where each mode's workspace is created. Sessions load project settings (the fixture's spec-kit skills), and
+ * Claude Code reads project instructions from every directory above the workspace — so this must sit outside
+ * the user's home, whose ~/.claude/CLAUDE.md would otherwise load as a project file. Checked by workspace.ts.
+ */
+export const WORKSPACES_ROOT = process.env.UROBOROS_TESTBED_WORKDIR ?? (process.platform === 'win32' ? 'C:/uro-testbed-work' : tmpdir());
 
 /** Bump whenever idea.md, truth.md, the hidden tests or the fixture change: results of different scenario versions are never compared. */
 export const SCENARIO_VERSION = 1;

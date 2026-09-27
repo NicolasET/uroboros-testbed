@@ -8,7 +8,7 @@ This repository measures the [uroboros](https://github.com/NicolasET/uroboros) p
 2. **The fixture decides none of the planted ambiguities.** No code in `fixture/` may settle who pauses, visibility, ordering, rank preservation or idempotency — otherwise uroboros has nothing to ask.
 3. **uroboros never sees the answers.** The hidden tests, `truth.md` and `harness/reference/` stay out of every workspace until the run ends.
 4. **Pinned graders.** The oracle and judge models are exact model ids. The role model follows the latest Opus at its own default effort, and every result records the exact model and effort.
-5. **Isolated sessions.** Sessions run with `settingSources: []`; nothing from the machine running the testbed may influence a result.
+5. **Isolated sessions.** Sessions load project settings only (`settingSources: ['project']`, for the fixture's spec-kit skills), in workspaces outside the user's home with no `CLAUDE.md`, `AGENTS.md` or `.claude` above them (`assertIsolatedRoot`). Nothing from the machine running the testbed may influence a result.
 6. **Results are data.** Never edit a committed `results/` file by hand; re-run instead.
 
 ## Verifying a change to the harness

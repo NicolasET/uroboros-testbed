@@ -12,7 +12,7 @@ import { sumTokens, type ModeResult, type RunResult } from './results.ts';
 import { runSession } from './session.ts';
 import { resolveUroboros } from './uroboros-source.ts';
 import { runGate, runHiddenTests } from './verify.ts';
-import { createWorkspace } from './workspace.ts';
+import { assertIsolatedRoot, createWorkspace } from './workspace.ts';
 
 function promptFor(mode: Mode, profile: RoleProfile, idea: string): string {
   const models = `--reviewer=${profile.alias}:${profile.effort} --implementer=${profile.alias}:${profile.effort}`;
@@ -104,6 +104,7 @@ function appendOracleLog(runLog: string, resultLog: string, modesRun: Mode[]): v
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+  assertIsolatedRoot();
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   mkdirSync(RUNS_DIR, { recursive: true });
 
