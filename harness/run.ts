@@ -57,11 +57,24 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
   });
 
   const buildsCode = mode !== 'compat';
-  const gate = buildsCode ? await runGate(workspace) : undefined;
-  const hidden = buildsCode ? await runHiddenTests(workspace) : undefined;
   const questionsAsked = oracle.asked - askedBefore;
-  const e2e = await checkEndToEnd({ mode, workspace, session, questionsAsked, gate });
-  const ambiguity = buildsCode ? await judgeAmbiguities(mode, workspace, readExchanges(oracleLog, mode)) : undefined;
+  // Measuring must never crash the run: a failed step is recorded on this mode and the next mode still runs.
+  const failures: string[] = session.error ? [session.error] : [];
+  const measure = async <T>(step: string, fn: () => Promise<T>): Promise<T | undefined> => {
+    try {
+      return await fn();
+    } catch (e) {
+      failures.push(`${step}: ${String(e).slice(0, 500)}`);
+      return undefined;
+    }
+  };
+  const gate = buildsCode ? await measure('gate', () => runGate(workspace)) : undefined;
+  const hidden = buildsCode ? await measure('hidden tests', () => runHiddenTests(workspace)) : undefined;
+  const e2e = (await measure('end-to-end checks', () => checkEndToEnd({ mode, workspace, session, questionsAsked, gate }))) ?? {
+    pass: false,
+    checks: { 'checks could run': false },
+  };
+  const ambiguity = buildsCode ? await measure('judge', () => judgeAmbiguities(mode, workspace, readExchanges(oracleLog, mode))) : undefined;
 
   return {
     mode,
@@ -76,7 +89,7 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
     gate,
     hidden,
     ambiguity,
-    error: session.error,
+    error: failures.length ? failures.join(' | ') : undefined,
   };
 }
 

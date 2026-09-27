@@ -23,9 +23,10 @@ Answer each question exactly as that user would:
 - If the truth settles the question but no option says it, answer with one short sentence that states the truth.
 - If the truth does not settle the question, answer "No sé" (or "I don't know" if the question is in English). Never invent a fact, and never pick an option just to be helpful.
 - Asked whether you have references, mockups, example code or libraries to point at: you have none.
-- Asked to approve or confirm a summary, a prompt or a draft: approve it when nothing in it contradicts the truth; otherwise pick the option that lets you correct it and state the correction.
+- Asked to approve or confirm a summary, a prompt or a draft: check every statement in it against the truth, including what it lists as open or undecided. If it contradicts the truth, or leaves open something the truth settles, answer with free text that starts with the label of the option for correcting it, followed by ": " and every correction in one or two sentences each (e.g. "Algo no cuadra: …"). Otherwise answer with the label of the approving option.
 - For a multiSelect question, list every matching label separated by ", ".
-Return every question's exact text as a key of "answers".`;
+- Speak as the user, in the first person. Never mention TRUTH, a document, or that you are role-playing.
+Return "answers" as a list with exactly one answer per question, in the same order as QUESTIONS.`;
 
 /** Answers uroboros's questions from the scenario truth, and logs every exchange. */
 export class Oracle {
@@ -39,17 +40,22 @@ export class Oracle {
 
   async answer(mode: Mode, questions: AskedQuestion[]): Promise<Record<string, string>> {
     this.asked += questions.length;
-    const prompt = `${RULES}\n\nTRUTH:\n${this.truth}\n\nQUESTIONS (JSON):\n${JSON.stringify(questions, null, 2)}`;
+    const numbered = questions.map((q, i) => ({ number: i + 1, ...q }));
+    const prompt = `${RULES}\n\nTRUTH:\n${this.truth}\n\nQUESTIONS (JSON):\n${JSON.stringify(numbered, null, 2)}`;
+    // Answers come back by position, never keyed by question text: models rewrite long keys.
     const schema = {
       type: 'object',
-      properties: { answers: { type: 'object', additionalProperties: { type: 'string' } } },
+      properties: { answers: { type: 'array', items: { type: 'string' }, minItems: questions.length, maxItems: questions.length } },
       required: ['answers'],
     };
-    const { value, costUsd } = await askStructured<{ answers: Record<string, string> }>(ORACLE_MODEL, prompt, schema);
+    const { value, costUsd } = await askStructured<{ answers: string[] }>(ORACLE_MODEL, prompt, schema);
     this.costUsd += costUsd;
+    if (value.answers.length !== questions.length) {
+      throw new Error(`oracle returned ${value.answers.length} answers for ${questions.length} questions`);
+    }
 
     const answers: Record<string, string> = {};
-    for (const q of questions) answers[q.question] = value.answers[q.question] ?? 'No sé';
+    questions.forEach((q, i) => (answers[q.question] = value.answers[i]!));
     const exchange: OracleExchange = { at: new Date().toISOString(), mode, questions, answers };
     appendFileSync(this.logPath, JSON.stringify(exchange) + '\n');
     return answers;

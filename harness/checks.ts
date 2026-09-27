@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { featureDir } from './artifacts.ts';
 import type { Mode } from './config.ts';
-import { execOrThrow } from './exec.ts';
+import { exec } from './exec.ts';
 import type { SessionOutcome } from './session.ts';
 import type { GateResult } from './verify.ts';
 
@@ -29,7 +29,8 @@ export async function checkEndToEnd(e: Evidence): Promise<EndToEnd> {
     for (const file of ['spec.md', 'plan.md', 'tasks.md', 'loop-state.md']) checks[`${file} exists`] = !!dir && existsSync(join(dir, file));
     const tasks = dir && existsSync(join(dir, 'tasks.md')) ? readFileSync(join(dir, 'tasks.md'), 'utf8') : '';
     checks['every task checked'] = tasks.includes('[X]') && !/^\s*- \[ \]/m.test(tasks);
-    checks['feature branch created'] = (await execOrThrow('git', ['branch', '--show-current'], e.workspace)) !== 'main';
+    const branch = await exec('git', ['branch', '--show-current'], e.workspace);
+    checks['feature branch created'] = branch.code === 0 && branch.output.trim() !== 'main';
     checks['gate green'] = gateGreen;
     checks['loop report produced'] = /loop report/i.test(e.session.finalText);
     if (e.mode === 'auto') checks['no question after the up-front batch'] = e.questionsAsked === 0;
