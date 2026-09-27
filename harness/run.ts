@@ -8,7 +8,7 @@ import { judgeAmbiguities } from './judge.ts';
 import { resolveRoleProfile, type RoleProfile } from './model-profile.ts';
 import { Oracle, type OracleExchange } from './oracle.ts';
 import { previousResult, renderSummary } from './report.ts';
-import { sumTokens, type ModeResult, type RunResult } from './results.ts';
+import { sumTokens, usageLimitError, type ModeResult, type RunResult } from './results.ts';
 import { runSession } from './session.ts';
 import { resolveUroboros } from './uroboros-source.ts';
 import { runGate, runHiddenTests } from './verify.ts';
@@ -55,6 +55,12 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
     oracle,
     transcriptPath: join(runDir, mode, 'transcript.jsonl'),
   });
+
+  const limit = usageLimitError(session.error);
+  if (limit) {
+    return { mode, startedAt, durationMs: session.durationMs, costUsd: session.costUsd, harnessCostUsd: 0, tokens: sumTokens(session.modelUsage),
+      models: Object.keys(session.modelUsage), questionsAsked: oracle.asked - askedBefore, e2e: { pass: false, checks: {} }, aborted: limit };
+  }
 
   const buildsCode = mode !== 'compat';
   const questionsAsked = oracle.asked - askedBefore;
@@ -130,12 +136,17 @@ async function main(): Promise<void> {
   if (earlier?.scenarioVersion === SCENARIO_VERSION) run.modes = earlier.modes.filter((m) => !args.modes.includes(m.mode));
   const previous = previousResult(run);
   for (const mode of args.modes) {
-    run.modes.push(await runMode(mode, runDir, uroboros.dir, profile, oracle, oracleLog));
+    const result = await runMode(mode, runDir, uroboros.dir, profile, oracle, oracleLog);
+    run.modes.push(result);
     run.modes.sort((a, b) => MODES.indexOf(a.mode) - MODES.indexOf(b.mode));
     // Written after every mode so an interrupted run keeps what it measured.
     writeFileSync(metricsPath, JSON.stringify(run, null, 2) + '\n');
     if (existsSync(oracleLog)) appendOracleLog(oracleLog, join(resultDir, 'oracle-log.jsonl'), args.modes);
     writeFileSync(join(resultDir, 'summary.md'), renderSummary(run, previous));
+    if (result.aborted) {
+      console.log(`[${mode}] aborted by the account limit; later modes not started. Re-run with --modes once it resets.`);
+      break;
+    }
   }
   console.log(`\n${renderSummary(run, previous)}\nresults: ${resultDir}\ntranscripts: ${runDir}`);
 }

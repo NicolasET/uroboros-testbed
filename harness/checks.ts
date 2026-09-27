@@ -28,7 +28,8 @@ export async function checkEndToEnd(e: Evidence): Promise<EndToEnd> {
     const dir = featureDir(e.workspace, 'specs');
     for (const file of ['spec.md', 'plan.md', 'tasks.md', 'loop-state.md']) checks[`${file} exists`] = !!dir && existsSync(join(dir, file));
     const tasks = dir && existsSync(join(dir, 'tasks.md')) ? readFileSync(join(dir, 'tasks.md'), 'utf8') : '';
-    checks['every task checked'] = tasks.includes('[X]') && !/^\s*- \[ \]/m.test(tasks);
+    // Both [X] and [x] mark a done task in markdown.
+    checks['every task checked'] = /^\s*- \[[xX]\]/m.test(tasks) && !/^\s*- \[ \]/m.test(tasks);
     const branch = await exec('git', ['branch', '--show-current'], e.workspace);
     checks['feature branch created'] = branch.code === 0 && branch.output.trim() !== 'main';
     checks['gate green'] = gateGreen;

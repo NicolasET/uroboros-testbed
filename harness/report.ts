@@ -23,7 +23,7 @@ export function previousResult(current: RunResult): RunResult | undefined {
     .map((name) => join(RESULTS_DIR, name, 'metrics.json'))
     .filter((path) => existsSync(path))
     .map((path) => JSON.parse(readFileSync(path, 'utf8')) as RunResult)
-    .filter((r) => r.scenarioVersion === current.scenarioVersion && compareVersions(r.uroboros.version, current.uroboros.version) < 0)
+    .filter((r) => r.scenarioVersion === current.scenarioVersion && r.modes.some((m) => !m.aborted) && compareVersions(r.uroboros.version, current.uroboros.version) < 0)
     .sort((a, b) => compareVersions(b.uroboros.version, a.uroboros.version));
   return older[0];
 }
@@ -36,6 +36,9 @@ function compareVersions(a: string, b: string): number {
 }
 
 function modeTable(mode: Mode, current: ModeResult, previous?: ModeResult): string {
+  if (current.aborted) {
+    return [`### ${mode}`, '', `ABORTED — not measured (${current.aborted.slice(0, 160)}). Re-run this mode with \`--modes ${mode}\`.`].join('\n');
+  }
   const lines = [`### ${mode}`, '', `| | ${previous ? 'previous | ' : ''}this run |`, `|---|${previous ? '---|' : ''}---|`];
   for (const [name, show] of ROWS) lines.push(`| ${name} | ${previous ? `${show(previous)} | ` : ''}${show(current)} |`);
   if (current.ambiguity) {

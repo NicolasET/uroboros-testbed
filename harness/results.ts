@@ -22,6 +22,8 @@ export interface ModeResult {
   hidden?: HiddenTestsResult;
   ambiguity?: AmbiguityScore;
   error?: string;
+  /** Set when the account's usage or rate limit cut the mode short: its numbers measure nothing, re-run it. */
+  aborted?: string;
 }
 
 export interface RunResult {
@@ -32,6 +34,11 @@ export interface RunResult {
   sdkVersion: string;
   startedAt: string;
   modes: ModeResult[];
+}
+
+/** Errors that come from the account, not from uroboros: a mode cut short by one of these is re-run, never scored. */
+export function usageLimitError(error: string | undefined): string | undefined {
+  return error && /hit your (weekly|session|daily|usage) limit|usage limit|rate limit|credit balance/i.test(error) ? error : undefined;
 }
 
 export function sumTokens(usage: Record<string, ModelUsage>): ModeResult['tokens'] {
