@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { UROBOROS_REPO_URL } from './config.ts';
 import { exec, execOrThrow } from './exec.ts';
@@ -23,6 +23,8 @@ export async function resolveUroboros(requested: string, workRoot: string): Prom
     dir = resolve(requested);
   } else {
     dir = join(workRoot, `uroboros-${requested.replace(/[^\w.-]/g, '_')}`);
+    // A clone left by an earlier run would make git refuse; the ref may also have moved since.
+    rmSync(dir, { recursive: true, force: true });
     await execOrThrow('git', ['clone', '--quiet', '--depth', '1', '--branch', requested, UROBOROS_REPO_URL, dir], workRoot);
   }
 

@@ -1,0 +1,213 @@
+{
+  "label": "0.12.2",
+  "scenarioVersion": 4,
+  "uroboros": {
+    "requested": "v0.12.2",
+    "version": "0.12.2",
+    "commit": "cecb0242f283ff08160add5b29ada50f2252f4ef",
+    "dirty": false,
+    "label": "0.12.2"
+  },
+  "profile": {
+    "alias": "opus",
+    "modelId": "claude-opus-5-5",
+    "effort": "medium",
+    "claudeCodeVersion": "2.1.283"
+  },
+  "sdkVersion": "0.3.283",
+  "startedAt": "2026-10-01T21:49:44.820Z",
+  "modes": [
+    {
+      "mode": "default",
+      "startedAt": "2026-10-01T21:49:44.822Z",
+      "durationMs": 1107748,
+      "costUsd": 5.156254000000002,
+      "harnessCostUsd": 0.2524825,
+      "tokens": {
+        "input": 206,
+        "output": 83878,
+        "cacheRead": 6048565,
+        "cacheCreation": 359747
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 13,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "spec.md exists": true,
+          "plan.md exists": true,
+          "tasks.md exists": true,
+          "loop-state.md exists": true,
+          "every task checked": true,
+          "feature branch created": true,
+          "gate green": true,
+          "loop report produced": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 11,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 3,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 2,
+            "total": 2
+          }
+        }
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "asked",
+            "evidence": "¿Quién puede pausar y reanudar una publicación? Hoy solo los vendedores publican, y cada publicación tiene un vendedor dueño. → El dueño y los admins"
+          },
+          {
+            "id": "P2",
+            "verdict": "asked",
+            "evidence": "Hoy cualquiera (incluso sin identificarse) puede ver una publicación por su id (GET /listings/:id). ¿Qué pasa con una publicación pausada? → Visible para todos (plus separate Q on search: 'Ocultarla de la búsqueda')"
+          },
+          {
+            "id": "P3",
+            "verdict": "asked",
+            "evidence": "Hoy cualquier comprador puede hacer un pedido sobre cualquier publicación ... ¿Qué pasa si alguien intenta pedir una publicación pausada? → Rechazar el pedido"
+          },
+          {
+            "id": "P4",
+            "verdict": "asked",
+            "evidence": "Algo no cuadra: El ranking (rankScore) se preserva exactamente al reanudar, pero la posición de búsqueda no está garantizada —otras publicaciones pueden haberla adelantado mientras estuvo pausada. (correction given in answer to the summary-confirmation question)"
+          },
+          {
+            "id": "P5",
+            "verdict": "asked",
+            "evidence": "¿Qué pasa si se pide pausar una publicación que ya está pausada, o reanudar una que ya está activa? → Éxito sin cambios"
+          }
+        ],
+        "judgeCostUsd": 0.09023160000000001
+      }
+    },
+    {
+      "mode": "goal",
+      "startedAt": "2026-10-01T22:08:47.243Z",
+      "durationMs": 459284,
+      "costUsd": 1.9650684000000007,
+      "harnessCostUsd": 0.16746619999999995,
+      "tokens": {
+        "input": 86,
+        "output": 35469,
+        "cacheRead": 1696037,
+        "cacheCreation": 140643
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 12,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "goal.md exists": true,
+          "loop-state.md exists": true,
+          "marker closed as complete": true,
+          "gate green": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 11,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 3,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 2,
+            "total": 2
+          }
+        }
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "asked",
+            "evidence": "Q: '¿Quién puede pausar y reanudar una publicación?' A: 'El dueño y los admins'"
+          },
+          {
+            "id": "P2",
+            "verdict": "asked",
+            "evidence": "Q: 'Cuando una publicación está pausada, ¿debe aparecer en los resultados de búsqueda?' A: 'Oculta en la búsqueda'; and Q: '¿qué pasa si alguien pide una pausada directamente por su id?' A: 'Se ve, con status paused'"
+          },
+          {
+            "id": "P3",
+            "verdict": "asked",
+            "evidence": "Q: '¿Se debe poder comprar una publicación pausada?' A: 'No, rechazar el pedido'"
+          },
+          {
+            "id": "P4",
+            "verdict": "asked",
+            "evidence": "User correction on summary question: 'al reanudar, el rankScore se preserva exactamente, pero la posición en los resultados de búsqueda no está garantizada porque otros artículos pueden haberla superado mientras estaba pausada.'"
+          },
+          {
+            "id": "P5",
+            "verdict": "asked",
+            "evidence": "Q: '¿Qué debe pasar si se pausa una publicación que ya está pausada, o se reanuda una que ya está activa?' A: 'Éxito sin cambios (200)'"
+          }
+        ],
+        "judgeCostUsd": 0.044545
+      }
+    }
+  ]
+}

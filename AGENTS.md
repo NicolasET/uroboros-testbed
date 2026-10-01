@@ -4,7 +4,7 @@ This repository measures the [uroboros](https://github.com/NicolasET/uroboros) p
 
 ## Invariants
 
-1. **The scenario is fixed.** `scenario/idea.md`, `scenario/truth.md`, `scenario/hidden-tests/` and `fixture/` define what is measured. Never change them silently. A change needs the maintainer's approval and a bump of `SCENARIO_VERSION` in `harness/config.ts`; results of different scenario versions are never compared.
+1. **The scenario is fixed.** `scenario/idea.md`, `scenario/truth.md`, `scenario/hidden-tests/`, `fixture/` and the oracle's rules (`harness/oracle.ts`) define what is measured. Never change them silently. A change needs the maintainer's approval and a bump of `SCENARIO_VERSION` in `harness/config.ts`; results of different scenario versions are never compared.
 2. **The fixture decides none of the planted ambiguities.** No code in `fixture/` may settle who pauses, visibility, ordering, rank preservation or idempotency — otherwise uroboros has nothing to ask.
 3. **uroboros never sees the answers.** The hidden tests, `truth.md` and `harness/reference/` stay out of every workspace until the run ends.
 4. **Pinned graders.** The oracle and judge models are exact model ids. The role model follows the latest Opus at its own default effort, and every result records the exact model and effort.

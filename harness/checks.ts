@@ -33,7 +33,8 @@ export async function checkEndToEnd(e: Evidence): Promise<EndToEnd> {
     const branch = await exec('git', ['branch', '--show-current'], e.workspace);
     checks['feature branch created'] = branch.code === 0 && branch.output.trim() !== 'main';
     checks['gate green'] = gateGreen;
-    checks['loop report produced'] = /loop report/i.test(e.session.finalText);
+    // The report is written in the user's language, so its title varies; its first required item is the path to loop-state.md.
+    checks['loop report produced'] = /loop-state\.md/.test(e.session.finalText);
     if (e.mode === 'auto') checks['no question after the up-front batch'] = e.questionsAsked === 0;
   }
 
