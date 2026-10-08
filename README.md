@@ -15,7 +15,7 @@ For each mode — the default pipeline, `--auto`, `--goal`, and `/uroboros:compa
 
 ## How it works
 
-- **Fixture** ([`fixture/`](./fixture/)): a minimal Node/TypeScript listings API with in-memory data, and spec-kit **1.0.0** installed from its release tag (Claude integration, `ps` scripts, git extension) — the uroboros compatibility contract's baseline. It deliberately settles none of the planted decisions.
+- **Fixture** ([`fixture/`](./fixture/)): a minimal Node/TypeScript listings API with in-memory data, and spec-kit **1.1.0** installed from its release tag (Claude integration, `ps` scripts, git extension) — the uroboros compatibility contract's baseline. It deliberately settles none of the planted decisions.
 - **Scenario** ([`scenario/`](./scenario/)): the idea uroboros receives (in Spanish, the maintainer's language), the truth the fictional user holds, and the hidden tests.
 - **Oracle**: uroboros phrases its questions differently every run, so a pinned small model (`claude-haiku-4-5-20251001`) answers each `AskUserQuestion` from `truth.md` alone, and says "No sé" to anything the truth does not settle. Every exchange is logged.
 - **Roles**: the orchestrator, reviewer and implementer all run on the latest Opus (`opus` alias) at **that model's own default effort**, resolved at the start of each run (the Agent SDK would otherwise default to `high`). The exact model and effort are recorded, so a model change is never mistaken for a plugin change.

@@ -1,0 +1,338 @@
+{
+  "label": "0.14.0+e731107.dirty",
+  "scenarioVersion": 5,
+  "uroboros": {
+    "requested": "../uroboros",
+    "version": "0.14.0",
+    "commit": "e731107d9cd9d47cf238bb438d261c41a6f9cd29",
+    "dirty": true,
+    "label": "0.14.0+e731107.dirty"
+  },
+  "profile": {
+    "alias": "opus",
+    "modelId": "claude-opus-5-5",
+    "effort": "medium",
+    "claudeCodeVersion": "2.1.283"
+  },
+  "sdkVersion": "0.3.283",
+  "startedAt": "2026-10-08T06:39:32.670Z",
+  "modes": [
+    {
+      "mode": "default",
+      "startedAt": "2026-10-08T06:39:32.672Z",
+      "durationMs": 1003927,
+      "costUsd": 5.828617200000003,
+      "harnessCostUsd": 0.3169919,
+      "tokens": {
+        "input": 242,
+        "output": 88111,
+        "cacheRead": 7787076,
+        "cacheCreation": 403501
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 17,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "spec.md exists": true,
+          "plan.md exists": true,
+          "tasks.md exists": true,
+          "loop-state.md exists": true,
+          "every task checked": true,
+          "feature branch created": true,
+          "gate green": true,
+          "loop report produced": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 11,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 3,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 2,
+            "total": 2
+          }
+        }
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "asked",
+            "evidence": "Q: \"¿Quién puede pausar y reanudar una publicación?\" A: \"Su vendedor y los admins\""
+          },
+          {
+            "id": "P2",
+            "verdict": "asked",
+            "evidence": "Q: \"¿Qué pasa con una publicación pausada en la búsqueda?\" A: \"Oculta para todos\"; and Q: \"¿Qué pasa si alguien la pide directamente por su id?\" A: \"Visible para todos\""
+          },
+          {
+            "id": "P3",
+            "verdict": "asked",
+            "evidence": "Q: \"¿Se puede pedir una publicación pausada?\" A: \"No, se rechaza\""
+          },
+          {
+            "id": "P4",
+            "verdict": "asked",
+            "evidence": "Summary confirmation question answered: \"Algo no cuadra: El puntaje de ranking se conserva exactamente al pausar y reanudar, pero no está garantizado que vuelva a su posición anterior en la búsqueda; otras publicaciones podrían haber avanzado mientras tanto.\""
+          },
+          {
+            "id": "P5",
+            "verdict": "asked",
+            "evidence": "Q: \"Regla para acciones repetidas o fuera de lugar: pausar una publicación ya pausada, o reanudar una que ya está activa. ¿Qué responde la API?\" A: \"Éxito sin cambios\""
+          }
+        ],
+        "judgeCostUsd": 0.07688600000000001
+      }
+    },
+    {
+      "mode": "auto",
+      "startedAt": "2026-10-08T06:56:33.018Z",
+      "durationMs": 844397,
+      "costUsd": 5.170861200000003,
+      "harnessCostUsd": 0.07231399999999999,
+      "tokens": {
+        "input": 214,
+        "output": 81509,
+        "cacheRead": 6554066,
+        "cacheCreation": 354570
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 0,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "spec.md exists": true,
+          "plan.md exists": true,
+          "tasks.md exists": true,
+          "loop-state.md exists": true,
+          "every task checked": true,
+          "feature branch created": true,
+          "gate green": true,
+          "loop report produced": true,
+          "no question after the up-front batch": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 8,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 2,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 0,
+            "total": 2
+          }
+        }
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "recorded_assumption",
+            "evidence": "A1 Who may pause/resume: only the seller who owns the listing. Admins, other sellers, buyers → 403; missing/unknown user → 401; unknown listing → 404."
+          },
+          {
+            "id": "P2",
+            "verdict": "recorded_assumption",
+            "evidence": "A2 Visibility while paused: a paused listing is excluded from search (GET /listings) for everyone; GET /listings/:id still returns it (with status `paused`)."
+          },
+          {
+            "id": "P3",
+            "verdict": "recorded_assumption",
+            "evidence": "A3 Ordering a paused listing is refused (409, error `listing_paused`); existing orders on it are untouched."
+          },
+          {
+            "id": "P4",
+            "verdict": "recorded_assumption",
+            "evidence": "A4 Ranking preservation: pause/resume never change rankScore or createdAt; on resume the listing returns to the search position its rankScore and createdAt give it."
+          },
+          {
+            "id": "P5",
+            "verdict": "recorded_assumption",
+            "evidence": "A5 Repeated actions: pausing an already-paused listing or resuming an active one is refused with 409 (`listing_already_paused` / `listing_not_paused`), no change."
+          }
+        ],
+        "judgeCostUsd": 0.07231399999999999
+      }
+    },
+    {
+      "mode": "goal",
+      "startedAt": "2026-10-08T07:10:54.389Z",
+      "durationMs": 486764,
+      "costUsd": 1.9067794,
+      "harnessCostUsd": 0.3757452,
+      "tokens": {
+        "input": 86,
+        "output": 33305,
+        "cacheRead": 1835087,
+        "cacheCreation": 131379
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 12,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "goal.md exists": true,
+          "loop-state.md exists": true,
+          "marker closed as complete": true,
+          "gate green": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 11,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 3,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 2,
+            "total": 2
+          }
+        }
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "asked",
+            "evidence": "¿Quién puede pausar y reanudar una publicación?... — Answer: \"Dueño o admin\""
+          },
+          {
+            "id": "P2",
+            "verdict": "asked",
+            "evidence": "\"¿Qué pasa con una publicación pausada en la búsqueda?\" → \"No aparece\"; and \"¿Y si alguien la pide directamente por su id?\" → \"Visible para todos\""
+          },
+          {
+            "id": "P3",
+            "verdict": "asked",
+            "evidence": "\"¿Se puede pedir una publicación pausada?\" — Answer: \"No, se rechaza\""
+          },
+          {
+            "id": "P4",
+            "verdict": "asked",
+            "evidence": "Summary question answer: \"El ranking (puntos) se preserva exactamente al pausar y reanudar, pero su posición en búsqueda no es garantizada — otras publicaciones pueden haber avanzado mientras estaba pausada.\""
+          },
+          {
+            "id": "P5",
+            "verdict": "asked",
+            "evidence": "\"Regla para acciones repetidas... pausar una publicación que ya está pausada, o reanudar una que ya está activa. ¿Qué responde la API?\" — Answer: \"Éxito sin cambios\""
+          }
+        ],
+        "judgeCostUsd": 0.184693
+      }
+    },
+    {
+      "mode": "compat",
+      "startedAt": "2026-10-08T07:19:21.769Z",
+      "durationMs": 45512,
+      "costUsd": 0.30164420000000003,
+      "harnessCostUsd": 0,
+      "tokens": {
+        "input": 12,
+        "output": 3830,
+        "cacheRead": 191181,
+        "cacheCreation": 23345
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 0,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "report printed": true,
+          "verdict covered": true,
+          "no CHANGED or MISSING row": true
+        }
+      }
+    }
+  ]
+}

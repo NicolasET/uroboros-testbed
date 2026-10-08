@@ -16,8 +16,8 @@ export const PROBE_PLUGIN_DIR = join(ROOT, 'harness', 'probe-plugin');
  */
 export const WORKSPACES_ROOT = process.env.UROBOROS_TESTBED_WORKDIR ?? (process.platform === 'win32' ? 'C:/uro-testbed-work' : tmpdir());
 
-/** Bump whenever idea.md, truth.md, the hidden tests, the fixture or the oracle's rules change: results of different scenario versions are never compared. v3: the oracle states its corrections whatever the rejecting option is called, and never answers empty. v4: it never keeps a delegated decision open. */
-export const SCENARIO_VERSION = 4;
+/** Bump whenever idea.md, truth.md, the hidden tests, the fixture or the oracle's rules change: results of different scenario versions are never compared. v3: the oracle states its corrections whatever the rejecting option is called, and never answers empty. v4: it never keeps a delegated decision open. v5: the fixture moves to spec-kit 1.1.0. */
+export const SCENARIO_VERSION = 5;
 
 export const UROBOROS_REPO_URL = 'https://github.com/NicolasET/uroboros.git';
 
