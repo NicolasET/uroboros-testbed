@@ -1,9 +1,9 @@
-// Entry point: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat]
+// Entry point: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat,verify]
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from './args.ts';
 import { checkEndToEnd } from './checks.ts';
-import { MODES, RESULTS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, type Mode } from './config.ts';
+import { MODES, RESULTS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
 import { judgeAmbiguities } from './judge.ts';
 import { resolveRoleProfile, type RoleProfile } from './model-profile.ts';
 import { Oracle, type OracleExchange } from './oracle.ts';
@@ -11,7 +11,9 @@ import { previousResult, renderSummary } from './report.ts';
 import { sumTokens, usageLimitError, type ModeResult, type RunResult } from './results.ts';
 import { runSession } from './session.ts';
 import { resolveUroboros } from './uroboros-source.ts';
-import { runGate, runHiddenTests } from './verify.ts';
+import { runGate, runHiddenTests, runRuntimeTests } from './verify.ts';
+import { scoreVerifier } from './verifier.ts';
+import { runVerifyMode } from './verify-eval.ts';
 import { assertIsolatedRoot, createWorkspace } from './workspace.ts';
 
 function promptFor(mode: Mode, profile: RoleProfile, idea: string): string {
@@ -25,6 +27,8 @@ function promptFor(mode: Mode, profile: RoleProfile, idea: string): string {
       return `/uroboros:run --goal ${models} ${idea}`;
     case 'compat':
       return '/uroboros:compat';
+    case 'verify':
+      throw new Error('the verify mode builds its own prompts (verify-eval.ts)');
   }
 }
 
@@ -76,6 +80,8 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
   };
   const gate = buildsCode ? await measure('gate', () => runGate(workspace)) : undefined;
   const hidden = buildsCode ? await measure('hidden tests', () => runHiddenTests(workspace)) : undefined;
+  const runtime = buildsCode ? await measure('runtime tests', () => runRuntimeTests(workspace)) : undefined;
+  const verifier = buildsCode ? await measure('verifier reports', async () => scoreVerifier(join(runDir, mode, 'transcript.jsonl'))) : undefined;
   const e2e = (await measure('end-to-end checks', () => checkEndToEnd({ mode, workspace, session, questionsAsked, gate }))) ?? {
     pass: false,
     checks: { 'checks could run': false },
@@ -94,6 +100,8 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
     e2e,
     gate,
     hidden,
+    runtime,
+    verifier,
     ambiguity,
     error: failures.length ? failures.join(' | ') : undefined,
   };
@@ -126,7 +134,7 @@ async function main(): Promise<void> {
   const sdkManifest = join(ROOT, 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'package.json');
   const sdkVersion = (JSON.parse(readFileSync(sdkManifest, 'utf8')) as { version: string }).version;
   const { dir: _dir, ...source } = uroboros;
-  const run: RunResult = { label: uroboros.label, scenarioVersion: SCENARIO_VERSION, uroboros: source, profile, sdkVersion, startedAt: new Date().toISOString(), modes: [] };
+  const run: RunResult = { label: uroboros.label, scenarioVersion: SCENARIO_VERSION, verifyEvalVersion: VERIFY_EVAL_VERSION, uroboros: source, profile, sdkVersion, startedAt: new Date().toISOString(), modes: [] };
 
   const resultDir = join(RESULTS_DIR, uroboros.label);
   mkdirSync(resultDir, { recursive: true });
@@ -136,7 +144,10 @@ async function main(): Promise<void> {
   if (earlier?.scenarioVersion === SCENARIO_VERSION) run.modes = earlier.modes.filter((m) => !args.modes.includes(m.mode));
   const previous = previousResult(run);
   for (const mode of args.modes) {
-    const result = await runMode(mode, runDir, uroboros.dir, profile, oracle, oracleLog);
+    const result =
+      mode === 'verify'
+        ? await runVerifyMode({ runDir, pluginDir: uroboros.dir, profile, oracle })
+        : await runMode(mode, runDir, uroboros.dir, profile, oracle, oracleLog);
     run.modes.push(result);
     run.modes.sort((a, b) => MODES.indexOf(a.mode) - MODES.indexOf(b.mode));
     // Written after every mode so an interrupted run keeps what it measured.

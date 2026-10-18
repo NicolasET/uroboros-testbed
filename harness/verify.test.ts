@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { FIXTURE_DIR, ROOT } from './config.ts';
-import { parseTap, runGate, runHiddenTests } from './verify.ts';
+import { parseTap, runGate, runHiddenTests, runRuntimeTests } from './verify.ts';
 
 function copyFixture(): string {
   const dir = mkdtempSync(join(tmpdir(), 'uro-testbed-verify-'));
@@ -26,6 +26,29 @@ describe('hidden acceptance tests', () => {
     const hidden = await runHiddenTests(workspace);
     assert.equal(hidden.passed, 11, JSON.stringify(hidden.groups));
     assert.deepEqual(await runGate(workspace), { test: true, typecheck: true, lint: true });
+  });
+});
+
+describe('hidden runtime tests', () => {
+  it('all fail on the bare fixture, whose server does not publish the new routes', async () => {
+    const result = await runRuntimeTests(copyFixture());
+    assert.equal(result.total, 3, result.error ?? '');
+    assert.equal(result.passed, 0);
+  });
+
+  it('all pass on the reference implementation', async () => {
+    const workspace = copyFixture();
+    cpSync(join(ROOT, 'harness', 'reference', 'src'), join(workspace, 'src'), { recursive: true });
+    const result = await runRuntimeTests(workspace);
+    assert.equal(result.passed, 3, JSON.stringify(result));
+  });
+
+  it('the in-process acceptance tests pass on the reference even without the server route table', async () => {
+    const workspace = copyFixture();
+    cpSync(join(ROOT, 'harness', 'reference', 'src'), join(workspace, 'src'), { recursive: true });
+    cpSync(join(FIXTURE_DIR, 'src', 'gateway.ts'), join(workspace, 'src', 'gateway.ts'));
+    assert.equal((await runHiddenTests(workspace)).passed, 11);
+    assert.equal((await runRuntimeTests(workspace)).passed, 0);
   });
 });
 

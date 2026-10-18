@@ -12,14 +12,14 @@ export interface GateResult {
 export interface HiddenTestsResult {
   passed: number;
   total: number;
-  /** Per `describe` block: "core: …", "P1: …" … "P5: …". */
+  /** Per `describe` block: "core: …", "P1: …" … "P5: …"; "runtime: …" for the runtime tests. */
   groups: Record<string, { passed: number; total: number }>;
   /** Set when the file could not run at all (e.g. the helpers it imports changed). */
   error?: string;
 }
 
-const HIDDEN_FILE = 'pause.acceptance.test.ts';
-const HIDDEN_COPY = 'zz-hidden-pause.acceptance.test.ts';
+const ACCEPTANCE_FILE = 'pause.acceptance.test.ts';
+const RUNTIME_FILE = 'pause.runtime.test.ts';
 
 /** The fixture's own gate, exactly as uroboros is expected to run it. */
 export async function runGate(workspace: string): Promise<GateResult> {
@@ -28,9 +28,19 @@ export async function runGate(workspace: string): Promise<GateResult> {
 }
 
 /** Copies the hidden acceptance tests in after the run and scores them per group. */
-export async function runHiddenTests(workspace: string): Promise<HiddenTestsResult> {
-  copyFileSync(join(SCENARIO_DIR, 'hidden-tests', HIDDEN_FILE), join(workspace, 'test', HIDDEN_COPY));
-  const { output } = await exec('npx', ['tsx', '--test', '--test-reporter=tap', `test/${HIDDEN_COPY}`], workspace);
+export function runHiddenTests(workspace: string): Promise<HiddenTestsResult> {
+  return runHiddenFile(workspace, ACCEPTANCE_FILE);
+}
+
+/** Copies the hidden runtime tests in after the run: they start the real server, not the in-process app. */
+export function runRuntimeTests(workspace: string): Promise<HiddenTestsResult> {
+  return runHiddenFile(workspace, RUNTIME_FILE);
+}
+
+async function runHiddenFile(workspace: string, file: string): Promise<HiddenTestsResult> {
+  const copy = `zz-hidden-${file}`;
+  copyFileSync(join(SCENARIO_DIR, 'hidden-tests', file), join(workspace, 'test', copy));
+  const { output } = await exec('npx', ['tsx', '--test', '--test-reporter=tap', `test/${copy}`], workspace);
   return parseTap(output);
 }
 

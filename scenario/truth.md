@@ -1,6 +1,6 @@
 # Scenario truth — what the fictional user actually wants
 
-The oracle answers every question from this file and nothing else, in the language of the question (the idea is in Spanish, so questions arrive in Spanish). It is fixed: changing it invalidates comparisons with earlier results (bump `SCENARIO_VERSION` in `harness/config.ts`). v2 added the delegation of exact error codes and success bodies. v3 and v4 changed only the oracle's rules (`harness/oracle.ts`), and v5 only the fixture's spec-kit (1.0.0 → 1.1.0), not this file.
+The oracle answers every question from this file and nothing else, in the language of the question (the idea is in Spanish, so questions arrive in Spanish). It is fixed: changing it invalidates comparisons with earlier results (bump `SCENARIO_VERSION` in `harness/config.ts`). v2 added the delegation of exact error codes and success bodies. v3 and v4 changed only the oracle's rules (`harness/oracle.ts`), v5 only the fixture's spec-kit (1.0.0 → 1.1.0), and v6 the fixture's server (a route table) and the hidden runtime tests, not this file.
 
 ## Planted ambiguities (scored)
 

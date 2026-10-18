@@ -1,0 +1,6 @@
+[
+  { "name": "route", "overlay": "defects/route", "expectFail": ["QS-2", "QS-3", "QS-4", "QS-5", "QS-6", "QS-7", "QS-8", "QS-9", "QS-10", "US1/AC1", "US1/AC2", "US1/AC3", "US1/AC4", "US2/AC1", "US2/AC2", "US3/AC1", "US3/AC2", "US3/AC3"] },
+  { "name": "cache", "overlay": "defects/cache", "expectFail": ["QS-3", "QS-9", "US1/AC2", "US2/AC2"] },
+  { "name": "status", "overlay": "defects/status", "expectFail": ["QS-2", "QS-4", "QS-6", "QS-7", "QS-10", "US1/AC1", "US1/AC3", "US1/AC4", "US2/AC1", "US3/AC1", "US3/AC2", "US3/AC3"] },
+  { "name": "clean", "overlay": null, "expectFail": [] }
+]

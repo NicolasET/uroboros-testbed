@@ -5,6 +5,8 @@ import type { AmbiguityScore } from './judge.ts';
 import type { RoleProfile } from './model-profile.ts';
 import type { UroborosSource } from './uroboros-source.ts';
 import type { GateResult, HiddenTestsResult } from './verify.ts';
+import type { VerifierEval } from './verify-eval.ts';
+import type { VerifierScore } from './verifier.ts';
 
 export interface ModeResult {
   mode: Mode;
@@ -20,6 +22,14 @@ export interface ModeResult {
   e2e: EndToEnd;
   gate?: GateResult;
   hidden?: HiddenTestsResult;
+  /** Hidden tests that start the real server (scenario v6+). */
+  runtime?: HiddenTestsResult;
+  /** The VERIFIER-REPORTs the session received; absent when no verifier ran. */
+  verifier?: VerifierScore;
+  /** `verify` mode only: detection and noise of the verifier on planted defects and a clean copy. */
+  verifierEval?: VerifierEval;
+  /** Set when the mode does not apply to this uroboros version (e.g. `verify` before the verifier existed). */
+  notApplicable?: string;
   ambiguity?: AmbiguityScore;
   error?: string;
   /** Set when the account's usage or rate limit cut the mode short: its numbers measure nothing, re-run it. */
@@ -29,6 +39,8 @@ export interface ModeResult {
 export interface RunResult {
   label: string;
   scenarioVersion: number;
+  /** The verifier eval version (`verify` mode), compared apart from the scenario version. */
+  verifyEvalVersion?: number;
   uroboros: Omit<UroborosSource, 'dir'>;
   profile: RoleProfile;
   sdkVersion: string;

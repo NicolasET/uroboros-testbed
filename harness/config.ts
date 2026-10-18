@@ -16,8 +16,13 @@ export const PROBE_PLUGIN_DIR = join(ROOT, 'harness', 'probe-plugin');
  */
 export const WORKSPACES_ROOT = process.env.UROBOROS_TESTBED_WORKDIR ?? (process.platform === 'win32' ? 'C:/uro-testbed-work' : tmpdir());
 
-/** Bump whenever idea.md, truth.md, the hidden tests, the fixture or the oracle's rules change: results of different scenario versions are never compared. v3: the oracle states its corrections whatever the rejecting option is called, and never answers empty. v4: it never keeps a delegated decision open. v5: the fixture moves to spec-kit 1.1.0. */
-export const SCENARIO_VERSION = 5;
+/** Bump whenever idea.md, truth.md, the hidden tests, the fixture or the oracle's rules change: results of different scenario versions are never compared. v3: the oracle states its corrections whatever the rejecting option is called, and never answers empty. v4: it never keeps a delegated decision open. v5: the fixture moves to spec-kit 1.1.0. v6: the fixture's server answers only a published route table (`src/gateway.ts`) that the in-process tests bypass, and hidden runtime tests start the real server. */
+export const SCENARIO_VERSION = 6;
+
+/** The verifier eval (`verify` mode, `scenario/verify/`) is versioned apart: it changes nothing the other modes measure. Bump it whenever `scenario/verify/` or its scoring changes; the `verify` row is compared only within one eval version. */
+export const VERIFY_EVAL_VERSION = 1;
+/** Runs per verifier eval case: the verifier is not deterministic, so each case reports a rate. */
+export const VERIFY_EVAL_RUNS = 3;
 
 export const UROBOROS_REPO_URL = 'https://github.com/NicolasET/uroboros.git';
 
@@ -27,7 +32,7 @@ export const ROLE_MODEL_ALIAS = 'opus';
 export const ORACLE_MODEL = 'claude-haiku-4-5-20251001';
 export const JUDGE_MODEL = 'claude-sonnet-5';
 
-export const MODES = ['default', 'auto', 'goal', 'compat'] as const;
+export const MODES = ['default', 'auto', 'goal', 'compat', 'verify'] as const;
 export type Mode = (typeof MODES)[number];
 
 /** Wall-clock guard per mode; a full pipeline run takes well under this. */
