@@ -4,7 +4,7 @@ A fixed, repeatable end-to-end test for the [uroboros](https://github.com/Nicola
 
 ## What one run measures
 
-For each mode — the default pipeline, `--auto`, `--goal`, `/uroboros:compat`, and the verifier eval (`verify`):
+For each mode — the default pipeline, `--auto`, `--goal`, `/uroboros:compat`, and the verifier and reviewer evals (`verify`, `review`):
 
 | Measure | How |
 |---|---|
@@ -32,6 +32,15 @@ The pipeline modes show whether a run builds the right thing; they cannot show w
 - **Scored**, over 3 runs per case: **detection** — a `fail` on a scenario the defect breaks; **false failures** — any `fail` on the clean copy, or on a scenario the defect does not break; `not-run` results; and whether the repository was left untouched.
 - Versioned apart (`VERIFY_EVAL_VERSION`), since it changes nothing the other modes measure. A uroboros version without a verifier records the mode as not applicable.
 
+## The reviewer eval (`review` mode)
+
+The same idea for uroboros's implement reviewer: whether its report names a defect the gate does not catch, and what it reports on a clean change. It is the negative control for the review: a reviewer that returns `CLEAN` on every case scores zero.
+
+- **Cases** ([`scenario/review/cases.json`](./scenario/review/cases.json)): the reference implementation plus one test per acceptance scenario ([`scenario/review/implementation/`](./scenario/review/implementation/)), with one planted defect each — `untracked` (the owner check moved to a new, untracked file whose operator precedence lets any seller pause an active listing), `skip` (search ignores the title query and the existing test is marked `.skip`), `suppress` (admins no longer see every order, hidden by `@ts-expect-error`), `weakened` (orders no longer raise the rank, and the existing assertion is loosened), `extra` (an endpoint nobody asked for) — and `clean`. Every case keeps the gate green; the clean copy passes the 11 hidden tests.
+- **Inputs**: a fixed `spec.md`, `plan.md`, `tasks.md` and `loop-state.md` after implement's first round ([`scenario/review/feature/`](./scenario/review/feature/)), committed with the fixture; the change is left uncommitted, as a run leaves it. One session per run dispatches the plugin's own `uroboros-reviewer-<effort>` agent with the implement step-B prompt **of the uroboros version measured** (`stepBPrompt` in `harness/review-eval.ts`): before 0.16.2 the changed-file list is `git diff --name-only`; from 0.16.2 it adds the untracked files; from 0.17.0 the harness takes the plugin's working-tree snapshots before and after the change, writes the run diff to `.git/uroboros/run.diff`, passes it as `RUN_DIFF`, and records both trees and a green gate baseline in the state file, as the orchestrator does. The prompt carries the plugin's model guide for the role model, as the orchestrator would. A version whose step B the builder does not reproduce yet stops the mode instead of guessing; extending it never changes the prompt of an earlier version.
+- **Scored**, over 3 runs per case: **detection** — the pinned judge finds a finding or risk that names the planted defect (a `CLEAN` report never counts, even if it mentions the defect in passing); on the clean copy, how many runs returned `CLEAN` and how many findings and risks the others raised; and whether the working tree was left untouched. It scores the reviewer's report as it arrives, before the refuter (only a full pipeline runs the refuter).
+- Versioned apart (`REVIEW_EVAL_VERSION`). Versions before 0.16.0 record the mode as not applicable.
+
 ## Run it
 
 Requirements: Node.js 24+, Git, and Claude Code signed in (the Agent SDK uses that login; no API key needed).
@@ -43,11 +52,12 @@ npm run testbed -- --uroboros ../uroboros             # a local checkout, e.g. b
 npm run testbed -- --uroboros v0.13.0                 # a published tag
 npm run testbed -- --uroboros ../uroboros --modes compat,goal
 npm run testbed -- --uroboros ../uroboros --modes verify  # the verifier eval alone, ~20 min
+npm run testbed -- --uroboros ../uroboros --modes review  # the reviewer eval alone
 ```
 
 A full run takes hours and has no cost ceiling: the cost is recorded, not capped.
 
 ## Results
 
-- `results/<version>/` — committed: `metrics.json`, `oracle-log.jsonl` and `summary.md`, which compares against the previous version that ran the same scenario version. A version that is not exactly its release tag is labeled `<version>+<commit>`.
+- `results/<version>/` — committed: `metrics.json`, `oracle-log.jsonl` and `summary.md`, which compares each mode against the most recent earlier version that measured that mode the same way (same scenario version and, for the evals, the same eval version) and ends with what the run does not prove. A version that is not exactly its release tag is labeled `<version>+<commit>`.
 - `runs/` — local only: each mode's full session transcript. The workspaces themselves live outside this repository (see Isolation), so uroboros can never reach `scenario/`; the run prints their paths.

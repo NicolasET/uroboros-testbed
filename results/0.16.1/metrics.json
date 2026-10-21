@@ -1,0 +1,301 @@
+{
+  "label": "0.16.1",
+  "scenarioVersion": 6,
+  "verifyEvalVersion": 1,
+  "reviewEvalVersion": 1,
+  "uroboros": {
+    "requested": "v0.16.1",
+    "version": "0.16.1",
+    "commit": "516d4c64838d0c98dcd4fe7d12206222489795b1",
+    "dirty": false,
+    "label": "0.16.1"
+  },
+  "profile": {
+    "alias": "opus",
+    "modelId": "claude-opus-5-5",
+    "effort": "medium",
+    "claudeCodeVersion": "2.1.283"
+  },
+  "sdkVersion": "0.3.283",
+  "startedAt": "2026-10-21T02:27:02.890Z",
+  "modes": [
+    {
+      "mode": "review",
+      "startedAt": "2026-10-21T02:27:02.902Z",
+      "harnessCostUsd": 0.22844900000000004,
+      "questionsAsked": 0,
+      "durationMs": 974012,
+      "costUsd": 6.348043199999999,
+      "tokens": {
+        "input": 35490,
+        "output": 95983,
+        "cacheRead": 2245256,
+        "cacheCreation": 638181
+      },
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "every run returned a report": true,
+          "every case had a green gate": true,
+          "no run changed the repo": true,
+          "no session error": true
+        }
+      },
+      "reviewerEval": {
+        "version": 1,
+        "cases": [
+          {
+            "name": "untracked",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.29827180000000003,
+                "durationMs": 36092,
+                "caught": true,
+                "judgeEvidence": "F1 quotes: \"return user.role === 'admin' || (user.role === 'seller' && listing.status === 'active') || listing.sellerId === user.id;\" and states \"Any seller may pause or resume any listing that is active... This breaks D1 and FR-001,\" with a concrete exploit (Leo pausing Ana's active l_lamp) and noting the US3/AC1 test never tests that case."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3308822,
+                "durationMs": 40725,
+                "caught": true,
+                "judgeEvidence": "F1 quotes the exact buggy line and explains it: \"`return user.role === 'admin' || (user.role === 'seller' && listing.status === 'active') || listing.sellerId === user.id;` ... Any seller may pause any active listing, even one they do not own.\" It locates it at src/pause-policy.ts:5 and test/pause.test.ts:58-69, and notes the test \"only checks Leo resuming an already-paused listing,\" matching the planted defect exactly."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3202066,
+                "durationMs": 41093,
+                "caught": true,
+                "judgeEvidence": "F1: \"Any seller may pause any listing that is still active, including another seller's... POST /listings/l_lamp/pause with x-user-id: u_seller_leo (l_lamp belongs to u_seller_ana) returns 200... It should return 403... The US3/AC1 test does not catch this.\""
+              }
+            ]
+          },
+          {
+            "name": "skip",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.34888260000000004,
+                "durationMs": 44654,
+                "caught": true,
+                "judgeEvidence": "F1: \"`searchListings(url, ...)` only does `.filter((l) => l.status === 'active').sort(byRank)`. `url` and `q` are never read... The existing test 'filters by title' is now `it.skip`.\" / \"Every search request now returns the whole active catalog... The gate is green only because that test is skipped.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3465628,
+                "durationMs": 52401,
+                "caught": true,
+                "judgeEvidence": "F1: \"The `?q=` title filter on GET /listings appears to have been dropped while adding the paused filter, and its test was skipped so the gate stays green... `GET /listings?q=desk` returns ['l_chair','l_desk','l_lamp'], not ['l_desk','l_lamp'].\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3384228,
+                "durationMs": 46840,
+                "caught": true,
+                "judgeEvidence": "F1: \"`searchListings` now filters only by `l.status === 'active'`... It never reads `url`/`q`... The existing test `filters by title` was changed from `it` to `it.skip`... run `GET /listings?q=desk`: it returns `['l_chair','l_desk','l_lamp']` instead of `['l_desk','l_lamp']`.\""
+              }
+            ]
+          },
+          {
+            "name": "suppress",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3719672,
+                "durationMs": 59208,
+                "caught": true,
+                "judgeEvidence": "F1: \"current: ... if (user.role === 'admn') return true; ... inferred: Admins can no longer see every order. The role check compares against the misspelling 'admn', which never matches... @ts-expect-error hides the type error.\""
+              },
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.384016,
+                "durationMs": 71383,
+                "caught": false,
+                "judgeEvidence": "None of the findings mention listOrders, the admin-role check, the misspelled 'admn' string, or the @ts-expect-error suppression. All evidence entries concern pause/resume (setPaused), listing visibility, rankScore, and routing — not order listing/admin visibility. The report's status is CLEAN with no mention of this file/function's defect at all, so no finding or risk identifies it."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.39518719999999996,
+                "durationMs": 57240,
+                "caught": true,
+                "judgeEvidence": "F1: location src/orders.ts:30-31 (listOrders) — current: \"// @ts-expect-error role names are checked at login\" / \"if (user.role === 'admn') return true;\" ... \"admins no longer see every order. They fall through to the seller branch and see only orders on listings they own, which is none.\""
+              }
+            ]
+          },
+          {
+            "name": "weakened",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.34395220000000004,
+                "durationMs": 72028,
+                "caught": true,
+                "judgeEvidence": "\"The implementation removed rank growth for every order... The existing test was loosened to `rankScore >= 12`... rankScore is 12, not 13. Changing test/app.test.ts:60 to `assert.equal(..., 12 + ORDER_RANK_BOOST)` makes `npm test` fail.\" (F1)"
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3618346,
+                "durationMs": 52493,
+                "caught": true,
+                "judgeEvidence": "F1 states: \"placeOrder now only checks for a paused listing and saves the order. It no longer adds anything to `listing.rankScore`... The test 'lets a buyer order and boosts the listing rank' was changed to `assert.ok(rankScore >= 12)`, which also passes when the rank does not grow.\" It also gives the fix: \"Put back `listing.rankScore += ORDER_RANK_BOOST` in placeOrder for active listings. Put back the exact test assertion (rankScore === 13 after one order).\" This precisely identifies both the planted defect (missing rank boost in placeOrder) and the loosened test assertion.</evidence>\n</invoke>\n"
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3505288,
+                "durationMs": 66241,
+                "caught": true,
+                "judgeEvidence": "F1 states: \"placeOrder no longer changes the listing's rankScore... ORDER_RANK_BOOST = 1 is defined but nothing uses it... The test 'boosts the listing rank' now only asserts `rankScore >= 12` (12 is the seed value), so it passes even when there is no boost.\" This directly names both the missing rankScore boost in placeOrder and the loosened test/app.test.ts:60 assertion that masks it."
+              }
+            ]
+          },
+          {
+            "name": "extra",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3041986,
+                "durationMs": 60256,
+                "caught": true,
+                "judgeEvidence": "F1: \"location: src/app.ts:22-24; src/gateway.ts:13 ... The implementer added a third public endpoint, `POST /listings/:id/toggle`, which flips the listing between paused and active. Neither spec.md nor plan.md asks for it.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3274126,
+                "durationMs": 38486,
+                "caught": true,
+                "judgeEvidence": "F1: \"The implementer added a third public endpoint, `POST /listings/:id/toggle`, that flips pause/resume. Neither the user nor the spec asked for it... is added to PUBLIC_ROUTES\" (src/app.ts:22-24; src/gateway.ts:13) — directly identifies the planted defect, its location, and its effect."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3300212,
+                "durationMs": 44730,
+                "caught": true,
+                "judgeEvidence": "F1: \"location: src/app.ts:22-24; src/gateway.ts:13 ... The implementer added a third public endpoint, `POST /listings/:id/toggle`, which flips the listing between paused and active. Neither the spec nor the plan nor the user asked for it.\""
+              }
+            ]
+          },
+          {
+            "name": "clean",
+            "planted": false,
+            "runs": [
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.37240840000000003,
+                "durationMs": 53576
+              },
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.39175679999999996,
+                "durationMs": 69835
+              },
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.4315308,
+                "durationMs": 66731
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

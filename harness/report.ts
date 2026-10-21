@@ -1,7 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { RESULTS_DIR, type Mode } from './config.ts';
+import { MODES, RESULTS_DIR, type Mode } from './config.ts';
+import type { RoleProfile } from './model-profile.ts';
 import type { ModeResult, RunResult } from './results.ts';
+import { compareVersions } from './versions.ts';
 
 type Row = [string, (r: ModeResult) => string];
 
@@ -13,6 +15,8 @@ const ROWS: Row[] = [
   ['verifier (pass/fail/not-run per round)', (r) => (r.verifier ? `${r.verifier.rounds.map((v) => `${v.pass}/${v.fail}/${v.notRun}`).join(' → ')}${r.verifier.caught ? ' — caught a failure, fixed' : ''}` : '-')],
   ['verifier detection (caught / runs)', (r) => (r.verifierEval ? r.verifierEval.cases.filter((c) => c.expectFail).map((c) => `${c.name} ${c.runs.filter((x) => x.caught).length}/${c.runs.length}`).join(' · ') : '-')],
   ['verifier false failures', (r) => (r.verifierEval ? falseFailures(r) : '-')],
+  ['reviewer detection (caught / runs)', (r) => (r.reviewerEval ? r.reviewerEval.cases.filter((c) => c.planted).map((c) => `${c.name} ${c.runs.filter((x) => x.caught).length}/${c.runs.length}`).join(' · ') : '-')],
+  ['reviewer on the clean copy', (r) => (r.reviewerEval ? reviewerOnClean(r) : '-')],
   ['gate (test/typecheck/lint)', (r) => (r.gate ? [r.gate.test, r.gate.typecheck, r.gate.lint].map((ok) => (ok ? '✓' : '✗')).join(' ') : '-')],
   ['questions asked', (r) => String(r.questionsAsked)],
   ['cost (USD, estimate)', (r) => r.costUsd.toFixed(2)],
@@ -29,23 +33,50 @@ function falseFailures(r: ModeResult): string {
   return `clean ${clean.filter((x) => x.strayFails > 0).length}/${clean.length} runs · stray fails ${stray} · not-run ${notRun}`;
 }
 
-/** The most recent earlier result whose version is lower than this run's, if any. */
-export function previousResult(current: RunResult): RunResult | undefined {
-  if (!existsSync(RESULTS_DIR)) return undefined;
+/** Clean-copy runs that returned CLEAN, and the findings and risks the others reported. */
+function reviewerOnClean(r: ModeResult): string {
+  const clean = (r.reviewerEval?.cases ?? []).filter((c) => !c.planted).flatMap((c) => c.runs);
+  const sum = (pick: (x: (typeof clean)[number]) => number) => clean.reduce((n, x) => n + pick(x), 0);
+  return `CLEAN ${clean.filter((x) => x.status === 'CLEAN').length}/${clean.length} runs · findings ${sum((x) => x.findings)} · risks ${sum((x) => x.risks)}`;
+}
+
+export interface PreviousMode {
+  label: string;
+  profile: RoleProfile;
+  result: ModeResult;
+}
+
+/** The eval modes are compared only within one eval version; every mode, within one scenario version. */
+function sameMeasure(mode: Mode, a: RunResult, b: RunResult): boolean {
+  if (a.scenarioVersion !== b.scenarioVersion) return false;
+  if (mode === 'verify') return a.verifyEvalVersion === b.verifyEvalVersion;
+  if (mode === 'review') return a.reviewEvalVersion === b.reviewEvalVersion;
+  return true;
+}
+
+/**
+ * For each mode, the most recent earlier result (a lower uroboros version) that measured that mode the same way.
+ * Per mode, not per run: a result that measured only some modes must not hide an older one for the others.
+ */
+export function previousModes(current: RunResult): Map<Mode, PreviousMode> {
+  const previous = new Map<Mode, PreviousMode>();
+  if (!existsSync(RESULTS_DIR)) return previous;
   const older = readdirSync(RESULTS_DIR)
     .map((name) => join(RESULTS_DIR, name, 'metrics.json'))
     .filter((path) => existsSync(path))
     .map((path) => JSON.parse(readFileSync(path, 'utf8')) as RunResult)
-    .filter((r) => r.scenarioVersion === current.scenarioVersion && r.modes.some((m) => !m.aborted) && compareVersions(r.uroboros.version, current.uroboros.version) < 0)
-    .sort((a, b) => compareVersions(b.uroboros.version, a.uroboros.version));
-  return older[0];
-}
-
-function compareVersions(a: string, b: string): number {
-  const pa = a.split('.').map(Number);
-  const pb = b.split('.').map(Number);
-  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0);
-  return 0;
+    .filter((r) => compareVersions(r.uroboros.version, current.uroboros.version) < 0)
+    .sort((a, b) => compareVersions(b.uroboros.version, a.uroboros.version) || b.startedAt.localeCompare(a.startedAt));
+  for (const mode of MODES) {
+    for (const r of older) {
+      const result = sameMeasure(mode, r, current) ? r.modes.find((m) => m.mode === mode && !m.aborted && !m.notApplicable) : undefined;
+      if (result) {
+        previous.set(mode, { label: r.label, profile: r.profile, result });
+        break;
+      }
+    }
+  }
+  return previous;
 }
 
 function modeTable(mode: Mode, current: ModeResult, previous?: ModeResult): string {
@@ -63,20 +94,37 @@ function modeTable(mode: Mode, current: ModeResult, previous?: ModeResult): stri
   return lines.join('\n');
 }
 
-export function renderSummary(run: RunResult, previous?: RunResult): string {
+/** What no result of this testbed proves, plus what this result left unmeasured. */
+function notProven(run: RunResult): string[] {
+  const measured = new Set(run.modes.filter((m) => !m.aborted && !m.notApplicable).map((m) => m.mode));
+  const items = [
+    'The browser path: testbed sessions load no MCP server, so no UI scenario runs and Claude in Chrome is never used.',
+    'Answers from a real user: the oracle answers from `truth.md` alone and says "No sé" to anything it does not settle.',
+    'Other projects: one fixture (a Node/TypeScript API on spec-kit 1.1.0) and one feature idea.',
+  ];
+  if (measured.has('review')) items.push("The refuter's effect: the reviewer eval scores the reviewer's report before the refuter, which only a full pipeline runs.");
+  const unmeasured = MODES.filter((m) => !measured.has(m));
+  if (unmeasured.length) items.push(`Modes not measured in this result: ${unmeasured.join(', ')}.`);
+  return ['## Not proven by this run', '', ...items.map((i) => `- ${i}`)];
+}
+
+export function renderSummary(run: RunResult, previous: Map<Mode, PreviousMode>): string {
+  const byLabel = new Map<string, Mode[]>();
+  for (const m of run.modes) {
+    const label = previous.get(m.mode)?.label ?? 'nothing yet';
+    byLabel.set(label, [...(byLabel.get(label) ?? []), m.mode]);
+  }
   const head = [
     `# uroboros ${run.label}`,
     '',
     `- uroboros: ${run.uroboros.requested} → ${run.uroboros.version} @ ${run.uroboros.commit.slice(0, 7)}${run.uroboros.dirty ? ' (uncommitted changes)' : ''}`,
     `- roles: ${run.profile.modelId} at \`${run.profile.effort}\` effort (the model's default) · Claude Code ${run.profile.claudeCodeVersion} · Agent SDK ${run.sdkVersion}`,
-    `- scenario: v${run.scenarioVersion}${run.verifyEvalVersion ? ` · verifier eval: v${run.verifyEvalVersion}` : ''} · started: ${run.startedAt}`,
-    `- compared with: ${previous ? `${previous.label} (${previous.profile.modelId} at ${previous.profile.effort})` : 'nothing yet — this is the first result'}`,
+    `- scenario: v${run.scenarioVersion}${run.verifyEvalVersion ? ` · verifier eval: v${run.verifyEvalVersion}` : ''}${run.reviewEvalVersion ? ` · reviewer eval: v${run.reviewEvalVersion}` : ''} · started: ${run.startedAt}`,
+    `- compared with: ${[...byLabel].map(([label, modes]) => `${modes.join(', ')} → ${label}`).join('; ') || 'nothing yet — this is the first result'}`,
   ];
-  if (previous && previous.profile.modelId !== run.profile.modelId) {
-    head.push(`- ⚠ the role model changed (${previous.profile.modelId} → ${run.profile.modelId}): differences may come from the model, not the plugin.`);
+  for (const model of new Set([...previous.values()].map((p) => p.profile.modelId))) {
+    if (model !== run.profile.modelId) head.push(`- ⚠ the role model changed (${model} → ${run.profile.modelId}) for some compared modes: differences may come from the model, not the plugin.`);
   }
-  // The verify row is compared only within one verifier eval version; the other modes, within one scenario version.
-  const comparable = (m: ModeResult) => m.mode !== 'verify' || previous?.verifyEvalVersion === run.verifyEvalVersion;
-  const tables = run.modes.map((m) => modeTable(m.mode, m, comparable(m) ? previous?.modes.find((p) => p.mode === m.mode && !p.notApplicable) : undefined));
-  return [...head, '', ...tables.flatMap((t) => [t, ''])].join('\n');
+  const tables = run.modes.map((m) => modeTable(m.mode, m, previous.get(m.mode)?.result));
+  return [...head, '', ...tables.flatMap((t) => [t, '']), ...notProven(run), ''].join('\n');
 }

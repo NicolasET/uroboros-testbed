@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { subagentReports } from './transcript.ts';
 
 export interface VerifierRound {
   pass: number;
@@ -20,8 +20,6 @@ export interface VerifierResult {
 }
 
 const SCENARIO_ID = /\b(?:QS-\d+|US\d+\/AC\d+|AC-\d+)\b/g;
-/** A report opens with `VERIFIER-REPORT`, sometimes inside the code fence the contract shows it in. */
-const REPORT_START = /^\s*(?:```\w*\s*)?VERIFIER-REPORT\b/;
 
 /** Counts the `outcome:` lines of one VERIFIER-REPORT block. */
 export function parseVerifierReport(text: string): VerifierRound {
@@ -48,19 +46,9 @@ export function parseVerifierResults(text: string): VerifierResult[] {
   return results;
 }
 
-/**
- * The verifier's reports in a session's transcript, in order. A subagent's final report reaches the session as a
- * `task_notification` whose summary is the report text, so each report appears once.
- */
+/** The verifier's reports in a session's transcript, in order. */
 export function verifierReports(transcriptPath: string): string[] {
-  if (!existsSync(transcriptPath)) return [];
-  const reports: string[] = [];
-  for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
-    if (!line.includes('VERIFIER-REPORT')) continue;
-    const m = JSON.parse(line) as { type?: string; subtype?: string; summary?: string };
-    if (m.type === 'system' && m.subtype === 'task_notification' && REPORT_START.test(m.summary ?? '')) reports.push(m.summary ?? '');
-  }
-  return reports;
+  return subagentReports(transcriptPath, 'VERIFIER-REPORT');
 }
 
 /** Scores the verifier rounds of a pipeline run from its transcript; undefined when no verifier ran. */

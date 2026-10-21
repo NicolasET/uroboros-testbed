@@ -1,0 +1,301 @@
+{
+  "label": "0.16.2",
+  "scenarioVersion": 6,
+  "verifyEvalVersion": 1,
+  "reviewEvalVersion": 1,
+  "uroboros": {
+    "requested": "v0.16.2",
+    "version": "0.16.2",
+    "commit": "94b45c4babe2866d236e4b70111ded62993244c7",
+    "dirty": false,
+    "label": "0.16.2"
+  },
+  "profile": {
+    "alias": "opus",
+    "modelId": "claude-opus-5-5",
+    "effort": "medium",
+    "claudeCodeVersion": "2.1.283"
+  },
+  "sdkVersion": "0.3.283",
+  "startedAt": "2026-10-21T02:47:15.524Z",
+  "modes": [
+    {
+      "mode": "review",
+      "startedAt": "2026-10-21T02:47:15.540Z",
+      "harnessCostUsd": 0.2465676,
+      "questionsAsked": 0,
+      "durationMs": 999913,
+      "costUsd": 6.388607,
+      "tokens": {
+        "input": 35717,
+        "output": 97389,
+        "cacheRead": 2359460,
+        "cacheCreation": 635884
+      },
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "every run returned a report": true,
+          "every case had a green gate": true,
+          "no run changed the repo": true,
+          "no session error": true
+        }
+      },
+      "reviewerEval": {
+        "version": 1,
+        "cases": [
+          {
+            "name": "untracked",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3401376,
+                "durationMs": 49253,
+                "caught": true,
+                "judgeEvidence": "F1: \"Any seller is allowed to pause any active listing they do not own... This breaks D1, FR-001... The test at test/pause.test.ts:65-67 only checks Leo resuming a listing that is already paused, which this clause does not cover.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3016056,
+                "durationMs": 46762,
+                "caught": true,
+                "judgeEvidence": "F1 quotes the exact faulty line (src/pause-policy.ts:5): `return user.role === 'admin' || (user.role === 'seller' && listing.status === 'active') || listing.sellerId === user.id;` and states \"Any seller is allowed to pause any active listing, including listings owned by other sellers,\" noting test/pause.test.ts \"never checks another seller pausing an active listing.\" This matches the planted defect exactly: location, the precedence bug, and the missing test coverage."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.307627,
+                "durationMs": 43885,
+                "caught": true,
+                "judgeEvidence": "F1 at src/pause-policy.ts:5 quotes the exact faulty line `return user.role === 'admin' || (user.role === 'seller' && listing.status === 'active') || listing.sellerId === user.id;` and states \"The code silently lets any seller pause any active listing, including other sellers' listings... This breaks D1... To see it fail, run POST /listings/l_lamp/pause as u_seller_leo... It returns 200 and sets l_lamp to paused.\" It also notes the test gap: \"The gate passed because the test only tries Leo on resume... It never tries Leo on pause of an active listing,\" matching test/pause.test.ts's missing coverage. This precisely identifies the planted defect's location, root cause (operator precedence), and effect (unauthorized pause by non-owner seller), plus the test omission.</evidence>\n</invoke>\n"
+              }
+            ]
+          },
+          {
+            "name": "skip",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.38112380000000007,
+                "durationMs": 61647,
+                "caught": true,
+                "judgeEvidence": "F1: \"`searchListings` now only does `.filter((l) => l.status === 'active').sort(byRank)`. The `q` read and the `l.title.toLowerCase().includes(q)` filter from the baseline are gone. The existing test was changed from `it('filters by title', …)` to `it.skip('filters by title', …)`.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3523374000000001,
+                "durationMs": 42566,
+                "caught": true,
+                "judgeEvidence": "F1: \"`.filter((l) => l.status === 'active')` replaced the original `q` title filter, which is gone (`url` is now unused). The existing test was changed to `it.skip('filters by title', …)`.\" — directly identifies the dropped q-filter and the test skip, matching the planted defect exactly."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3476824,
+                "durationMs": 57445,
+                "caught": true,
+                "judgeEvidence": "F1: \"the body only does `.filter((l) => l.status === 'active').sort(byRank)`. `url`/`q` is never read. The title-filter test is now `it.skip`... To show it fails, call `GET /listings?q=desk`... It returns `['l_chair','l_desk','l_lamp']` instead of `['l_desk','l_lamp']`.\""
+              }
+            ]
+          },
+          {
+            "name": "suppress",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3558624,
+                "durationMs": 57716,
+                "caught": false,
+                "judgeEvidence": "None of the findings mention listOrders, the 'admn' role check, or the @ts-expect-error suppression. The report's evidence entries only cover D1–D5 (pause/resume authorization in setPaused), FR-002 (listing visibility filtering by status), FR-003 (src/orders.ts:16 — but this is about refusing orders on paused listings with 409 listing_paused, not about admin visibility in listOrders), FR-004/FR-005 (rankScore/idempotency), gateway reachability, data model status field, and task/gate completion. There is no claim or evidence anywhere about admins being able to see every order, about a role comparison string, or about a ts-expect-error comment anywhere in the diff. The one mention of src/orders.ts (line 16, under FR-003, listed under CLEAN status) addresses an unrelated line/behavior (blocking order creation on paused listings) and does not describe or allude to the listOrders admin-role defect. Thus no finding or risk identifies this defect."
+              },
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3800018,
+                "durationMs": 82436,
+                "caught": false,
+                "judgeEvidence": "The report never mentions listOrders, the admin-visibility behavior, the 'admn' misspelling, or the @ts-expect-error suppression in src/orders.ts. Its only reference to src/orders.ts is: \"src/orders.ts:16 returns 409 before the order is created and before the rank boost (line 20)\" — which concerns the listing_paused ordering check, not listOrders or admin role filtering. No finding or risk identifies the planted defect's what, where, or effect."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.434904,
+                "durationMs": 56022,
+                "caught": true,
+                "judgeEvidence": "F1 states: \"src/orders.ts:30-31 (listOrders) ... `// @ts-expect-error role names are checked at login` / `if (user.role === 'admn') return true;` ... The typo `'admn'` can never match, so admins now fall through to the seller branch. ... Admins lose the ability to see all orders.\" This exactly names the misspelling, its location, the suppressing @ts-expect-error, and the broken admin-sees-all-orders behavior.</evidence>\n</invoke>\n"
+              }
+            ]
+          },
+          {
+            "name": "weakened",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.34157899999999997,
+                "durationMs": 44755,
+                "caught": true,
+                "judgeEvidence": "F1: \"placeOrder no longer changes `rankScore` at all... `ORDER_RANK_BOOST = 1` is now used nowhere. The test was loosened to `assert.ok(rankScore >= 12)`... Before the change it went to 13 (12 + ORDER_RANK_BOOST).\" This directly names both the missing boost in placeOrder and the loosened test assertion.</evidence>\n</invoke>\n"
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3870368,
+                "durationMs": 51235,
+                "caught": true,
+                "judgeEvidence": "Finding F1: \"placeOrder saves the order and sends 201, but it no longer adds to `listing.rankScore`... The test \\\"boosts the listing rank\\\" now asserts `rankScore >= 12`, which passes even when the score stays at 12.\" This names both parts of the planted defect: the missing ORDER_RANK_BOOST addition in placeOrder and the loosened test/app.test.ts assertion that masks it."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.34566120000000006,
+                "durationMs": 58181,
+                "caught": true,
+                "judgeEvidence": "F1: \"placeOrder no longer adds to rankScore... The existing test 'lets a buyer order and boosts the listing rank' was weakened to `assert.ok(rankScore >= 12)`, so it passes even though rank no longer grows.\" Also states rankScore is 12 but should be 13 (12 + ORDER_RANK_BOOST), and prescribes restoring `listing.rankScore += ORDER_RANK_BOOST` and the exact `rankScore === 13` assertion. This precisely identifies both the broken behavior (missing rank boost in placeOrder) and the loosened test assertion that masked it."
+              }
+            ]
+          },
+          {
+            "name": "extra",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.314998,
+                "durationMs": 52742,
+                "caught": true,
+                "judgeEvidence": "F1: \"The implementer added and published a third public endpoint, `POST /listings/:id/toggle`, that flips the pause state. The spec only defines `/pause` and `/resume`... No task covers it, and no test covers it.\" Location cited as src/app.ts:22-24; src/gateway.ts:13, matching the planted defect exactly (endpoint added in app.ts and published in PUBLIC_ROUTES in gateway.ts, not in spec/plan).</evidence>\n</invoke>\n"
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3040636,
+                "durationMs": 43931,
+                "caught": true,
+                "judgeEvidence": "F1 directly names the defect: \"The implementer added a third public endpoint, `POST /listings/:id/toggle`, that flips a listing between paused and active. No user statement, spec scenario, FR, plan line or task asks for it,\" citing exactly src/app.ts:22-24 and src/gateway.ts:13 (the PUBLIC_ROUTES entry), i.e. the same location and nature as the planted defect, along with its breaking effect on D5."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.30516560000000004,
+                "durationMs": 43118,
+                "caught": true,
+                "judgeEvidence": "F1: \"location: src/app.ts:22-24; src/gateway.ts:13 ... The implementer added a third public endpoint, POST /listings/:id/toggle ... Neither the spec nor the plan nor the tasks mention it ... plan.md says 'No other route, field or behavior changes.'\" with option \"Remove the toggle route from src/app.ts and from PUBLIC_ROUTES in src/gateway.ts\"</evidence>\n</invoke>\n"
+              }
+            ]
+          },
+          {
+            "name": "clean",
+            "planted": false,
+            "runs": [
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3994384,
+                "durationMs": 77399
+              },
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.4178232,
+                "durationMs": 56632
+              },
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3715592000000001,
+                "durationMs": 74188
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

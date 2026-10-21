@@ -24,6 +24,11 @@ export const VERIFY_EVAL_VERSION = 1;
 /** Runs per verifier eval case: the verifier is not deterministic, so each case reports a rate. */
 export const VERIFY_EVAL_RUNS = 3;
 
+/** The reviewer eval (`review` mode, `scenario/review/`) is versioned apart, like the verifier eval. Bump it whenever `scenario/review/`, its prompts or its scoring change; the `review` row is compared only within one eval version. */
+export const REVIEW_EVAL_VERSION = 1;
+/** Runs per reviewer eval case. */
+export const REVIEW_EVAL_RUNS = 3;
+
 export const UROBOROS_REPO_URL = 'https://github.com/NicolasET/uroboros.git';
 
 /** The three uroboros roles run on the latest Opus; the effort is its own default, resolved at run start. */
@@ -32,7 +37,7 @@ export const ROLE_MODEL_ALIAS = 'opus';
 export const ORACLE_MODEL = 'claude-haiku-4-5-20251001';
 export const JUDGE_MODEL = 'claude-sonnet-5';
 
-export const MODES = ['default', 'auto', 'goal', 'compat', 'verify'] as const;
+export const MODES = ['default', 'auto', 'goal', 'compat', 'verify', 'review'] as const;
 export type Mode = (typeof MODES)[number];
 
 /** Wall-clock guard per mode; a full pipeline run takes well under this. */

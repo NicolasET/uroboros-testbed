@@ -3,6 +3,7 @@ import type { EndToEnd } from './checks.ts';
 import type { Mode } from './config.ts';
 import type { AmbiguityScore } from './judge.ts';
 import type { RoleProfile } from './model-profile.ts';
+import type { ReviewerEval } from './review-eval.ts';
 import type { UroborosSource } from './uroboros-source.ts';
 import type { GateResult, HiddenTestsResult } from './verify.ts';
 import type { VerifierEval } from './verify-eval.ts';
@@ -28,6 +29,8 @@ export interface ModeResult {
   verifier?: VerifierScore;
   /** `verify` mode only: detection and noise of the verifier on planted defects and a clean copy. */
   verifierEval?: VerifierEval;
+  /** `review` mode only: detection of the reviewer on planted defects, and what it reports on a clean copy. */
+  reviewerEval?: ReviewerEval;
   /** Set when the mode does not apply to this uroboros version (e.g. `verify` before the verifier existed). */
   notApplicable?: string;
   ambiguity?: AmbiguityScore;
@@ -41,6 +44,8 @@ export interface RunResult {
   scenarioVersion: number;
   /** The verifier eval version (`verify` mode), compared apart from the scenario version. */
   verifyEvalVersion?: number;
+  /** The reviewer eval version (`review` mode), compared apart from the scenario version. */
+  reviewEvalVersion?: number;
   uroboros: Omit<UroborosSource, 'dir'>;
   profile: RoleProfile;
   sdkVersion: string;

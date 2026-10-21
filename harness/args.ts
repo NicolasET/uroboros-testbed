@@ -6,7 +6,7 @@ export interface RunArgs {
   modes: Mode[];
 }
 
-const USAGE = 'usage: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat,verify]';
+const USAGE = 'usage: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat,verify,review]';
 
 export function parseArgs(argv: string[]): RunArgs {
   let uroboros = '../uroboros';
