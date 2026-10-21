@@ -19,19 +19,61 @@ export interface VerifierResult {
   outcome: string;
 }
 
+export interface VerifierProbe {
+  id: string;
+  /** The requirement or edge case the probe was derived from, with its location (`FR-006 — spec.md:41`). */
+  source: string;
+  outcome: string;
+}
+
 const SCENARIO_ID = /\b(?:QS-\d+|US\d+\/AC\d+|AC-\d+)\b/g;
 
-/** Counts the `outcome:` lines of one VERIFIER-REPORT block. */
+/**
+ * The lines of one top-level block of a VERIFIER-REPORT (`results:`, `probes:`, `open:`), up to the next top-level key.
+ * From uroboros 0.20.0 the report carries `probes:` and `open:` after `results:`; only `results:` holds scenarios.
+ */
+export function reportBlock(text: string, key: string): string[] {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trimEnd() === `${key}:` || line.startsWith(`${key}: `));
+  if (start < 0) return [];
+  const end = lines.findIndex((line, i) => i > start && /^[a-z_]+:/.test(line));
+  return lines.slice(start + 1, end < 0 ? undefined : end);
+}
+
+/** Counts the scenario outcomes (`results:`) of one VERIFIER-REPORT block. */
 export function parseVerifierReport(text: string): VerifierRound {
-  const count = (outcome: string) => (text.match(new RegExp(`^\\s*outcome:\\s*${outcome}\\b`, 'gm')) ?? []).length;
+  const outcomes = reportBlock(text, 'results').map((line) => /^\s*outcome:\s*(pass|fail|not-run)\b/.exec(line)?.[1]);
+  const count = (outcome: string) => outcomes.filter((o) => o === outcome).length;
   return { pass: count('pass'), fail: count('fail'), notRun: count('not-run') };
+}
+
+/** Each probe of one VERIFIER-REPORT (`probes:`, uroboros 0.20.0+): its id, `source:` and `outcome:`. */
+export function parseVerifierProbes(text: string): VerifierProbe[] {
+  const probes: VerifierProbe[] = [];
+  let current: VerifierProbe | undefined;
+  for (const line of reportBlock(text, 'probes')) {
+    const id = /^\s*-\s*id:\s*(.+)$/.exec(line);
+    if (id?.[1]) {
+      current = { id: id[1].trim(), source: '', outcome: '' };
+      probes.push(current);
+      continue;
+    }
+    const field = /^\s*(source|outcome):\s*(.+)$/.exec(line);
+    if (field?.[1] && field[2] && current) current[field[1] as 'source' | 'outcome'] = field[2].trim();
+  }
+  return probes;
+}
+
+/** How many behaviors one VERIFIER-REPORT left `open:` (uroboros 0.20.0+): outcomes the spec does not fix. */
+export function countOpen(text: string): number {
+  return reportBlock(text, 'open').filter((line) => /^\s*-\s*id:/.test(line)).length;
 }
 
 /** Each result of one VERIFIER-REPORT: the ids on its `- id:` line and the `outcome:` that follows. */
 export function parseVerifierResults(text: string): VerifierResult[] {
   const results: VerifierResult[] = [];
   let ids: string[] | undefined;
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of reportBlock(text, 'results')) {
     const id = /^\s*-\s*id:\s*(.+)$/.exec(line);
     if (id?.[1]) {
       ids = id[1].match(SCENARIO_ID) ?? [];

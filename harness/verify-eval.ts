@@ -11,11 +11,14 @@ import type { RoleProfile } from './model-profile.ts';
 import type { Oracle } from './oracle.ts';
 import { sumTokens, usageLimitError, type ModeResult } from './results.ts';
 import { runSession } from './session.ts';
-import { parseVerifierResults, verifierReports } from './verifier.ts';
+import { countOpen, parseVerifierProbes, parseVerifierResults, verifierReports } from './verifier.ts';
+import { atLeast } from './versions.ts';
 import { createWorkspace } from './workspace.ts';
 
 export const VERIFY_DIR = join(SCENARIO_DIR, 'verify');
 const FEATURE_PATH = join('specs', '001-pause-listing');
+/** From this version the verifier probes the requirements (`probes:`, `open:`) and its dispatch carries `BASE_TREE`. */
+export const PROBES_FROM = '0.20.0';
 
 export interface VerifyCase {
   name: string;
@@ -27,7 +30,15 @@ export interface VerifyCase {
    * a `fail` on none of them is noise.
    */
   expectFail: string[];
+  /**
+   * Requirement ids (`FR-006`) whose rule the defect breaks where no scenario looks: a probe `fail` whose `source:`
+   * names one of them is a catch. Only a verifier that probes the requirements (uroboros 0.20.0+) can make it.
+   */
+  expectProbe?: string[];
 }
+
+/** The case plants a defect: some scenario or requirement it breaks is named. */
+export const hasDefect = (c: VerifyCase): boolean => c.expectFail.length > 0 || (c.expectProbe?.length ?? 0) > 0;
 
 export interface VerifyRun {
   reported: boolean;
@@ -35,6 +46,10 @@ export interface VerifyRun {
   caught?: boolean;
   strayFails: number;
   notRun: number;
+  /** Probes reported `fail` (0.20.0+); on the clean copy each one is also a stray failure. */
+  probeFails?: number;
+  /** Behaviors left `open:` (0.20.0+): outcomes the spec does not fix, for the user to decide. */
+  open?: number;
   /** `git status --porcelain` was not empty after the session. */
   touched: boolean;
   costUsd: number;
@@ -79,7 +94,7 @@ function decisionLog(): string {
 }
 
 /** The orchestrator's V1 prompt (verify protocol), handed to the main thread to dispatch verbatim. */
-export function promptFor(workspace: string, pluginDir: string, profile: RoleProfile, changedFiles: string): string {
+export function promptFor(workspace: string, pluginDir: string, profile: RoleProfile, changedFiles: string, version: string, baseTree: string): string {
   const feature = join(workspace, FEATURE_PATH);
   const dispatch = [
     `INSTRUCTIONS: ${join(pluginDir, 'references', 'verifier-instructions.md')}`,
@@ -87,6 +102,7 @@ export function promptFor(workspace: string, pluginDir: string, profile: RolePro
     'ROUND: 1',
     `SCENARIOS_FROM: ${join(feature, 'spec.md')}, ${join(feature, 'quickstart.md')}`,
     `CHANGED_FILES: ${changedFiles.split(/\r?\n/).filter(Boolean).join(', ')}`,
+    ...(atLeast(version, PROBES_FROM) ? [`BASE_TREE: ${baseTree}`] : []),
     'RUN_COMMANDS: none',
     `STATE_FILE: ${join(feature, 'loop-state.md')}`,
     'DECISION LOG:',
@@ -100,23 +116,34 @@ export function promptFor(workspace: string, pluginDir: string, profile: RolePro
   ].join('\n');
 }
 
-export function scoreRun(report: string | undefined, c: VerifyCase): Pick<VerifyRun, 'reported' | 'caught' | 'strayFails' | 'notRun'> {
+/**
+ * A catch is a `fail` on a scenario the defect breaks, or a probe `fail` naming a requirement it breaks. A scenario
+ * `fail` elsewhere is a stray failure; so is every probe `fail` on the clean copy. A probe `fail` on a defect case
+ * that names another requirement is counted but not judged: the defect may well break that rule too.
+ */
+export function scoreRun(report: string | undefined, c: VerifyCase): Pick<VerifyRun, 'reported' | 'caught' | 'strayFails' | 'notRun' | 'probeFails' | 'open'> {
   if (!report) return { reported: false, strayFails: 0, notRun: 0 };
   const results = parseVerifierResults(report);
+  const probes = parseVerifierProbes(report);
   const expected = new Set(c.expectFail);
   const fails = results.filter((r) => r.outcome === 'fail');
+  const probeFails = probes.filter((p) => p.outcome === 'fail');
   const hitsExpected = (ids: string[]) => ids.some((id) => expected.has(id));
+  const namesExpected = (source: string) => (c.expectProbe ?? []).some((fr) => new RegExp(`\\b${fr}\\b`).test(source));
   return {
     reported: true,
-    caught: c.expectFail.length ? fails.some((r) => hitsExpected(r.ids)) : undefined,
-    strayFails: fails.filter((r) => !hitsExpected(r.ids)).length,
+    caught: hasDefect(c) ? fails.some((r) => hitsExpected(r.ids)) || probeFails.some((p) => namesExpected(p.source)) : undefined,
+    strayFails: fails.filter((r) => !hitsExpected(r.ids)).length + (hasDefect(c) ? 0 : probeFails.length),
     notRun: results.filter((r) => r.outcome === 'not-run').length,
+    probeFails: probeFails.length,
+    open: countOpen(report),
   };
 }
 
 interface VerifyModeRequest {
   runDir: string;
   pluginDir: string;
+  version: string;
   profile: RoleProfile;
   oracle: Oracle;
 }
@@ -139,7 +166,7 @@ export async function runVerifyMode(req: VerifyModeRequest): Promise<ModeResult>
   let aborted: string | undefined;
 
   for (const c of readCases()) {
-    const entry = { name: c.name, expectFail: c.expectFail.length > 0, runs: [] as VerifyRun[] };
+    const entry = { name: c.name, expectFail: hasDefect(c), runs: [] as VerifyRun[] };
     evaluation.cases.push(entry);
     for (let i = 1; i <= VERIFY_EVAL_RUNS && !aborted; i++) {
       const workspace = await prepareWorkspace(c);
@@ -147,11 +174,13 @@ export async function runVerifyMode(req: VerifyModeRequest): Promise<ModeResult>
       mkdirSync(dir, { recursive: true });
       console.log(`[verify] ${c.name} ${i}/${VERIFY_EVAL_RUNS} in ${workspace}`);
       const changed = (await execOrThrow('git', ['diff', '--name-only', 'HEAD~1', 'HEAD'], workspace)).trim();
+      // The fixture commit: the product before the feature, as the plugin's `BASE TREE` would record it.
+      const baseTree = (await execOrThrow('git', ['rev-parse', 'HEAD~1^{tree}'], workspace)).trim();
       const transcriptPath = join(dir, 'transcript.jsonl');
       const session = await runSession({
         mode: 'verify',
         cwd: workspace,
-        prompt: promptFor(workspace, req.pluginDir, req.profile, changed),
+        prompt: promptFor(workspace, req.pluginDir, req.profile, changed, req.version, baseTree),
         pluginDir: req.pluginDir,
         profile: req.profile,
         oracle: req.oracle,

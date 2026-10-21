@@ -149,7 +149,7 @@ async function main(): Promise<void> {
   for (const mode of args.modes) {
     const result =
       mode === 'verify'
-        ? await runVerifyMode({ runDir, pluginDir: uroboros.dir, profile, oracle })
+        ? await runVerifyMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle })
         : mode === 'review'
           ? await runReviewMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle })
           : await runMode(mode, runDir, uroboros.dir, profile, oracle, oracleLog);

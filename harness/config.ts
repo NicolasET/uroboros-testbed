@@ -19,8 +19,8 @@ export const WORKSPACES_ROOT = process.env.UROBOROS_TESTBED_WORKDIR ?? (process.
 /** Bump whenever idea.md, truth.md, the hidden tests, the fixture or the oracle's rules change: results of different scenario versions are never compared. v3: the oracle states its corrections whatever the rejecting option is called, and never answers empty. v4: it never keeps a delegated decision open. v5: the fixture moves to spec-kit 1.1.0. v6: the fixture's server answers only a published route table (`src/gateway.ts`) that the in-process tests bypass, and hidden runtime tests start the real server. */
 export const SCENARIO_VERSION = 6;
 
-/** The verifier eval (`verify` mode, `scenario/verify/`) is versioned apart: it changes nothing the other modes measure. Bump it whenever `scenario/verify/` or its scoring changes; the `verify` row is compared only within one eval version. */
-export const VERIFY_EVAL_VERSION = 1;
+/** The verifier eval (`verify` mode, `scenario/verify/`) is versioned apart: it changes nothing the other modes measure. Bump it whenever `scenario/verify/` or its scoring changes; the `verify` row is compared only within one eval version. v2: FR-006 (an unknown listing id is refused with 404) and the `edge` case, whose defect breaks it where no scenario looks; probe failures are scored (uroboros 0.20.0+). */
+export const VERIFY_EVAL_VERSION = 2;
 /** Runs per verifier eval case: the verifier is not deterministic, so each case reports a rate. */
 export const VERIFY_EVAL_RUNS = 3;
 

@@ -23,6 +23,11 @@ describe('verifier score', () => {
     assert.deepEqual(score?.rounds, [{ pass: 1, fail: 0, notRun: 0 }, { pass: 0, fail: 1, notRun: 0 }]);
   });
 
+  it('counts only the scenarios: probes and open behaviors are not results', () => {
+    const text = [report(['pass', 'fail']), 'probes:', '  - id: P1', '    outcome: fail', 'open:', '  - id: P2', 'observed:', '  - none'].join('\n');
+    assert.deepEqual(parseVerifierReport(text), { pass: 1, fail: 1, notRun: 0 });
+  });
+
   it('counts outcomes per report', () => {
     assert.deepEqual(parseVerifierReport(report(['pass', 'fail', 'not-run', 'pass'])), { pass: 2, fail: 1, notRun: 1 });
   });

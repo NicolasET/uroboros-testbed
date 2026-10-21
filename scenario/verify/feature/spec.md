@@ -35,3 +35,4 @@
 - **FR-003** Orders on a paused listing are refused.
 - **FR-004** Pause and resume never change `rankScore`.
 - **FR-005** Repeated pause or resume succeeds without change.
+- **FR-006** A signed-in user who pauses or resumes a listing id that does not exist is refused with 404 `listing_not_found`.

@@ -1,0 +1,245 @@
+{
+  "label": "0.19.0",
+  "scenarioVersion": 6,
+  "verifyEvalVersion": 2,
+  "reviewEvalVersion": 1,
+  "uroboros": {
+    "requested": "v0.19.0",
+    "version": "0.19.0",
+    "commit": "a2f4f471f1bd41ef7eac31ee0f146875e2d5d240",
+    "dirty": false,
+    "label": "0.19.0"
+  },
+  "profile": {
+    "alias": "opus",
+    "modelId": "claude-opus-5-5",
+    "effort": "medium",
+    "claudeCodeVersion": "2.1.283"
+  },
+  "sdkVersion": "0.3.283",
+  "startedAt": "2026-10-21T19:53:26.899Z",
+  "modes": [
+    {
+      "mode": "verify",
+      "startedAt": "2026-10-21T19:53:26.911Z",
+      "harnessCostUsd": 0,
+      "questionsAsked": 0,
+      "durationMs": 955947,
+      "costUsd": 4.991297200000001,
+      "tokens": {
+        "input": 316,
+        "output": 104531,
+        "cacheRead": 2004526,
+        "cacheCreation": 382293
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "every run returned a report": true,
+          "no run changed the repo": true,
+          "no session error": true
+        }
+      },
+      "verifierEval": {
+        "version": 2,
+        "cases": [
+          {
+            "name": "route",
+            "expectFail": true,
+            "runs": [
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.5069549999999999,
+                "durationMs": 58434
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 1,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.30961659999999996,
+                "durationMs": 65034
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 1,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.33809300000000003,
+                "durationMs": 68511
+              }
+            ]
+          },
+          {
+            "name": "cache",
+            "expectFail": true,
+            "runs": [
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.36734439999999996,
+                "durationMs": 77891
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.3521188,
+                "durationMs": 76481
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.38864980000000005,
+                "durationMs": 85851
+              }
+            ]
+          },
+          {
+            "name": "status",
+            "expectFail": true,
+            "runs": [
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.33538140000000005,
+                "durationMs": 69897
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.3255924,
+                "durationMs": 65622
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.3261181999999999,
+                "durationMs": 64951
+              }
+            ]
+          },
+          {
+            "name": "edge",
+            "expectFail": true,
+            "runs": [
+              {
+                "reported": true,
+                "caught": false,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.30760319999999997,
+                "durationMs": 55461
+              },
+              {
+                "reported": true,
+                "caught": false,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.2905562,
+                "durationMs": 50927
+              },
+              {
+                "reported": true,
+                "caught": false,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.27076120000000004,
+                "durationMs": 53222
+              }
+            ]
+          },
+          {
+            "name": "clean",
+            "expectFail": false,
+            "runs": [
+              {
+                "reported": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.2813768,
+                "durationMs": 53784
+              },
+              {
+                "reported": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.29838040000000005,
+                "durationMs": 54327
+              },
+              {
+                "reported": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.29274979999999995,
+                "durationMs": 55554
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
