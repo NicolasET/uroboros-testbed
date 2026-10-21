@@ -26,9 +26,13 @@ const FEATURE_PATH = join('specs', '001-pause-listing');
 /** The first uroboros version whose step-B prompt this eval reproduces (ROUND, FOLDS, STANDING_DECISIONS, model guides). */
 export const FIRST_VERSION = '0.16.0';
 /** The first version whose step-B protocol this eval does not reproduce yet: extend `stepBPrompt` before measuring it. */
-export const UNKNOWN_FROM = '0.18.0';
+export const UNKNOWN_FROM = '0.19.0';
 /** From this version step B passes the run's diff between working-tree snapshots (`BASE TREE`, `ROUND TREE`, `RUN_DIFF`). */
 export const SNAPSHOTS_FROM = '0.17.0';
+/** From this version the state file carries the intake's `SURFACES` and the implementer's `### Shared code touched`. */
+export const SURFACES_FROM = '0.18.0';
+/** The surfaces the fixed feature's intake would have recorded: every one of them is in scope. */
+const SURFACES = 'SURFACES: HTTP API only — POST /listings/:id/pause and /resume (in scope); GET /listings search (in scope: paused listings hidden); GET /listings/:id (in scope: shows the status); POST /listings/:id/orders (in scope: refused while paused); the published route table in src/gateway.ts (in scope). No UI, CLI or background jobs.';
 
 /** The snapshots of a run from 0.17.0: the tree before the change, the tree after it, and the written run diff. */
 export interface RunTrees {
@@ -110,7 +114,7 @@ export async function prepareWorkspace(c: ReviewCase, version: string): Promise<
 ### Gate touched
 
 - round 1: none
-`,
+${atLeast(version, SURFACES_FROM) ? `\n### Shared code touched\n\n- round 1: none\n\n${SURFACES}\n` : ''}`,
   );
   return { workspace, trees: { base, round, runDiff } };
 }

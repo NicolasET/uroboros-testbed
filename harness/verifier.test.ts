@@ -17,6 +17,12 @@ function transcript(lines: unknown[]): string {
 const notification = (summary: string) => ({ type: 'system', subtype: 'task_notification', summary });
 
 describe('verifier score', () => {
+  it('reads a report inside a fence of three or more backticks', () => {
+    const fenced = (fence: string, outcome: string) => notification(`${fence}\n${report([outcome])}\n${fence}`);
+    const score = scoreVerifier(transcript([fenced('```', 'pass'), fenced('````', 'fail')]));
+    assert.deepEqual(score?.rounds, [{ pass: 1, fail: 0, notRun: 0 }, { pass: 0, fail: 1, notRun: 0 }]);
+  });
+
   it('counts outcomes per report', () => {
     assert.deepEqual(parseVerifierReport(report(['pass', 'fail', 'not-run', 'pass'])), { pass: 2, fail: 1, notRun: 1 });
   });

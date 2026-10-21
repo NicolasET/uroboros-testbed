@@ -8,7 +8,8 @@ import { existsSync, readFileSync } from 'node:fs';
  */
 export function subagentReports(transcriptPath: string, header: string): string[] {
   if (!existsSync(transcriptPath)) return [];
-  const start = new RegExp(`^\\s*(?:\`\`\`\\w*\\s*)?${header}\\b`);
+  // A fence of three or more backticks: models widen it when the report itself shows a fence.
+  const start = new RegExp(`^\\s*(?:\`{3,}\\w*\\s*)?${header}\\b`);
   const reports: string[] = [];
   for (const line of readFileSync(transcriptPath, 'utf8').split('\n')) {
     if (!line.includes(header)) continue;
