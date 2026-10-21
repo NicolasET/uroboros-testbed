@@ -47,6 +47,7 @@ Requirements: Node.js 24+, Git, and Claude Code signed in (the Agent SDK uses th
 
 ```
 npm install
+(cd fixture && npm ci)                                # the fixture's own dependencies: every workspace copies them
 npm test                                              # the harness's own checks (no model calls)
 npm run testbed -- --uroboros ../uroboros             # a local checkout, e.g. before a release
 npm run testbed -- --uroboros v0.13.0                 # a published tag
