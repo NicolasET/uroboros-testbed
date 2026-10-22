@@ -69,8 +69,12 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
       },
     })) {
       appendFileSync(req.transcriptPath, JSON.stringify(m) + '\n');
-      // Any message means the session is not over: a pending close waits for the next idle result.
-      clearTimeout(idleTimer);
+      // A turn's own messages mean the session is not over: a pending close waits for the next idle result.
+      // Anything else (a task summary, a status line) only restarts the quiet period.
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+        idleTimer = m.type === 'assistant' || m.type === 'user' ? undefined : setTimeout(closeInput, IDLE_CLOSE_MS);
+      }
       // Tasks reaching zero is not the end: the SDK then opens a turn to deliver the subagent's report.
       if (m.type === 'system' && m.subtype === 'background_tasks_changed') liveTasks = m.tasks.filter((t) => !t.ambient).length;
       if (m.type === 'result') {
