@@ -95,7 +95,7 @@ describe('reviewer eval step-B prompt', () => {
     assert.throws(() => stepBPrompt({ ...input, version: '0.15.0' }));
     assert.throws(() => stepBPrompt({ ...input, version: '0.17.0' }), /RUN_DIFF/);
     assert.match(stepBPrompt({ ...input, version: '0.17.0', runDiff: '/x/.git/uroboros/run.diff' }), /\nRUN_DIFF: \/x\/\.git\/uroboros\/run\.diff\n/);
-    assert.throws(() => stepBPrompt({ ...input, version: '0.23.0', runDiff: 'd' }));
+    assert.throws(() => stepBPrompt({ ...input, version: '0.24.0', runDiff: 'd' }));
     const prompt = stepBPrompt({ ...input, version: '0.16.2', guide: 'GUIDE TEXT' });
     assert.match(prompt, /subagent_type `uroboros:uroboros-reviewer-medium`, model `opus`/);
     assert.match(prompt, /PHASE: implement\nROUND: 1\n/);
