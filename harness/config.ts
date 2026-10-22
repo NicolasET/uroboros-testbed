@@ -42,3 +42,10 @@ export type Mode = (typeof MODES)[number];
 
 /** Wall-clock guard per mode; a full pipeline run takes well under this. */
 export const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000;
+
+/**
+ * How long a session must stay quiet after an idle result before its input closes. A finished subagent's report
+ * can arrive in a turn of its own after a result with no background task left; closing at once made every later
+ * tool call fail with "Stream closed" (seen twice in default mode, right after verification).
+ */
+export const IDLE_CLOSE_MS = 30 * 1000;

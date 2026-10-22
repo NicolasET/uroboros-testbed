@@ -1,6 +1,6 @@
 import { appendFileSync } from 'node:fs';
 import { query, type ModelUsage, type SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
-import { SESSION_TIMEOUT_MS, type Mode } from './config.ts';
+import { IDLE_CLOSE_MS, SESSION_TIMEOUT_MS, type Mode } from './config.ts';
 import type { RoleProfile } from './model-profile.ts';
 import type { AskedQuestion, Oracle } from './oracle.ts';
 
@@ -26,7 +26,9 @@ export interface SessionRequest {
 /**
  * Runs one uroboros invocation to its real end. Subagents run in the background, so a session yields a
  * result each time a turn ends and starts a new turn when a subagent reports. The input stays open until a
- * result arrives with no background task left: a closed input makes every later permission request fail.
+ * result arrives with no background task left and the session stays quiet for `IDLE_CLOSE_MS`: a closed input
+ * makes every later permission request fail, and a finished subagent's report can arrive in a turn of its own
+ * after such a result, with the orchestrator's next turn after it.
  */
 export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
   const started = Date.now();
@@ -41,6 +43,7 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
     await inputClosed;
   }
   let liveTasks = 0;
+  let idleTimer: NodeJS.Timeout | undefined;
 
   try {
     for await (const m of query({
@@ -66,6 +69,8 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
       },
     })) {
       appendFileSync(req.transcriptPath, JSON.stringify(m) + '\n');
+      // Any message means the session is not over: a pending close waits for the next idle result.
+      clearTimeout(idleTimer);
       // Tasks reaching zero is not the end: the SDK then opens a turn to deliver the subagent's report.
       if (m.type === 'system' && m.subtype === 'background_tasks_changed') liveTasks = m.tasks.filter((t) => !t.ambient).length;
       if (m.type === 'result') {
@@ -78,12 +83,13 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
         } else {
           outcome.error = m.subtype;
         }
-        if (liveTasks === 0) closeInput();
+        if (liveTasks === 0) idleTimer = setTimeout(closeInput, IDLE_CLOSE_MS);
       }
     }
   } catch (e) {
     outcome.error = abortController.signal.aborted ? `timeout after ${SESSION_TIMEOUT_MS} ms` : String(e);
   } finally {
+    clearTimeout(idleTimer);
     closeInput();
     clearTimeout(timer);
     outcome.durationMs = Date.now() - started;
