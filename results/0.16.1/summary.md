@@ -2,7 +2,7 @@
 
 - uroboros: v0.16.1 → 0.16.1 @ 516d4c6
 - roles: claude-opus-5-5 at `medium` effort (the model's default) · Claude Code 2.1.283 · Agent SDK 0.3.283
-- scenario: v6 · verifier eval: v1 · reviewer eval: v1 · started: 2026-10-21T02:27:02.890Z
+- scenario: v7 · verifier eval: v2 · reviewer eval: v2 · started: 2026-10-23T16:40:52.346Z
 - compared with: review → nothing yet
 
 ### review
@@ -11,18 +11,22 @@
 |---|---|
 | end to end | pass |
 | ambiguities detected | - |
+| contradicted standing decisions surfaced | - |
+| decisions.md at the end | - |
+| duplicate standing decisions (judge) | - |
+| "No sé" to a list (lists · items kept) | - |
 | hidden tests | - |
 | runtime tests (real server) | - |
 | verifier (pass/fail/not-run per round) | - |
 | verifier detection (caught / runs) | - |
 | verifier false failures | - |
-| reviewer detection (caught / runs) | untracked 3/3 · skip 3/3 · suppress 2/3 · weakened 3/3 · extra 3/3 |
+| reviewer detection (caught / runs) | untracked 3/3 · skip 3/3 · suppress 2/3 · weakened 3/3 · extra 3/3 · deleted 2/3 · ranking 3/3 |
 | reviewer on the clean copy | CLEAN 3/3 runs · findings 0 · risks 0 |
 | gate (test/typecheck/lint) | - |
 | questions asked | 0 |
-| cost (USD, estimate) | 6.35 |
-| duration (min) | 16.2 |
-| output tokens | 95983 |
+| cost (USD, estimate) | 8.72 |
+| duration (min) | 32.9 |
+| output tokens | 135229 |
 
 ## Not proven by this run
 
