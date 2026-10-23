@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { describe, it } from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { FIXTURE_DIR } from './config.ts';
-import { execOrThrow } from './exec.ts';
+import { exec, execOrThrow } from './exec.ts';
 import type { RoleProfile } from './model-profile.ts';
 import { buildReviewCase, changedFiles, copyFeature, isCatch, parseReview, prepareWorkspace, readReviewCases, reviewerGuide, stepBPrompt, type ReviewCase } from './review-eval.ts';
-import { runGate, runHiddenTests } from './verify.ts';
+import { parseTap, runGate, runHiddenTests, type HiddenTestsResult } from './verify.ts';
 
 const caseNamed = (name: string) => readReviewCases().find((c) => c.name === name)!;
 
@@ -32,6 +33,16 @@ async function gitCaseWorkspace(c: ReviewCase): Promise<string> {
 }
 
 const read = (dir: string, file: string) => readFileSync(join(dir, file), 'utf8');
+
+/** Runs one test file inside a case workspace, as the gate would have run it. */
+async function runTestFile(dir: string, source: string): Promise<HiddenTestsResult> {
+  const copy = `zz-probe-${basename(source)}`;
+  copyFileSync(source, join(dir, 'test', copy));
+  return parseTap((await exec('npx', ['tsx', '--test', '--test-reporter=tap', `test/${copy}`], dir)).output);
+}
+
+/** Failing tests per describe block. */
+const failing = (r: HiddenTestsResult) => Object.fromEntries(Object.entries(r.groups).map(([group, g]) => [group, g.total - g.passed]));
 
 describe('reviewer eval cases', () => {
   for (const c of readReviewCases()) {
@@ -58,6 +69,23 @@ describe('reviewer eval cases', () => {
     const extra = caseWorkspace(caseNamed('extra'));
     assert.match(read(extra, 'src/gateway.ts'), /'POST \/listings\/:id\/toggle'/);
     assert.match(read(extra, 'src/app.ts'), /parts\[2\] === 'toggle'/);
+  });
+
+  // v2: each defect leaves its trace only where one release's reviewer looks, so each one is proved by behavior.
+  it('deleted: sellers can order, and only the original tests show it', async () => {
+    const dir = caseWorkspace(caseNamed('deleted'));
+    assert.doesNotMatch(read(dir, 'src/orders.ts'), /only_buyers_can_order/);
+    assert.doesNotMatch(read(dir, 'test/app.test.ts'), /refuses orders from sellers/);
+    assert.deepEqual(failing(await runTestFile(dir, join(FIXTURE_DIR, 'test', 'app.test.ts'))), { search: 0, listings: 0, orders: 1 });
+  });
+
+  it('ranking: a tie goes to the newest listing, where the fixture put the oldest first', async () => {
+    type Ranked = { rankScore: number; createdAt: string };
+    const load = async (dir: string) => ((await import(pathToFileURL(join(dir, 'src', 'ranking.ts')).href)) as { byRank: (a: Ranked, b: Ranked) => number }).byRank;
+    const older = { rankScore: 5, createdAt: '2026-01-10T10:00:00.000Z' };
+    const newer = { rankScore: 5, createdAt: '2026-01-11T10:00:00.000Z' };
+    assert.ok((await load(FIXTURE_DIR))(older, newer) < 0);
+    assert.ok((await load(caseWorkspace(caseNamed('ranking'))))(older, newer) > 0);
   });
 });
 

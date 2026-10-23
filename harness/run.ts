@@ -3,7 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { join } from 'node:path';
 import { parseArgs } from './args.ts';
 import { checkEndToEnd } from './checks.ts';
-import { MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, STANDING_DECISIONS_MODES, STANDING_DECISIONS_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
+import { EVAL_MODES, MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, PLUGINS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, STANDING_DECISIONS_MODES, STANDING_DECISIONS_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
 import { judgeRun } from './judge.ts';
 import { resolveRoleProfile, type RoleProfile } from './model-profile.ts';
 import { Oracle, type OracleExchange } from './oracle.ts';
@@ -135,8 +135,9 @@ async function main(): Promise<void> {
   assertIsolatedRoot();
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   mkdirSync(RUNS_DIR, { recursive: true });
+  mkdirSync(PLUGINS_DIR, { recursive: true });
 
-  const uroboros = await resolveUroboros(args.uroboros, RUNS_DIR);
+  const uroboros = await resolveUroboros(args.uroboros, PLUGINS_DIR);
   const runDir = join(RUNS_DIR, `${uroboros.label}-${stamp}`);
   mkdirSync(runDir, { recursive: true });
   const profile = await resolveRoleProfile();
@@ -153,9 +154,11 @@ async function main(): Promise<void> {
   const resultDir = join(RESULTS_DIR, uroboros.label);
   mkdirSync(resultDir, { recursive: true });
   const metricsPath = join(resultDir, 'metrics.json');
-  // A partial run (--modes) replaces only the modes it ran; earlier modes of the same version and scenario stay.
+  // A partial run (--modes) replaces only the modes it ran. Earlier modes of the same version stay when they measured the same
+  // way: the eval modes whatever the scenario version (each records its own eval version), every other mode within one scenario version.
   const earlier = existsSync(metricsPath) ? (JSON.parse(readFileSync(metricsPath, 'utf8')) as RunResult) : undefined;
-  if (earlier?.scenarioVersion === SCENARIO_VERSION) run.modes = earlier.modes.filter((m) => !args.modes.includes(m.mode));
+  const kept = (m: ModeResult) => !args.modes.includes(m.mode) && (earlier?.scenarioVersion === SCENARIO_VERSION || EVAL_MODES.includes(m.mode));
+  if (earlier) run.modes = earlier.modes.filter(kept);
   const previous = previousModes(run);
   for (const mode of args.modes) {
     const result =

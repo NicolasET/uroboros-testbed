@@ -54,15 +54,22 @@ export interface PreviousMode {
   result: ModeResult;
 }
 
+/** The eval version an eval mode was measured with: the one its result records, else its run's. */
+function evalVersion(run: RunResult, result: ModeResult): number | undefined {
+  if (result.mode === 'verify') return result.verifierEval?.version ?? run.verifyEvalVersion;
+  if (result.mode === 'review') return result.reviewerEval?.version ?? run.reviewEvalVersion;
+  return undefined;
+}
+
 /**
  * The eval modes are compared within one eval version, whatever the scenario version: they read neither truth.md's
  * answers nor the standing decisions, and a fixture change bumps their versions too. Every other mode, within one
  * scenario version.
  */
-function sameMeasure(mode: Mode, a: RunResult, b: RunResult): boolean {
-  if (mode === 'verify') return a.verifyEvalVersion === b.verifyEvalVersion;
-  if (mode === 'review') return a.reviewEvalVersion === b.reviewEvalVersion;
-  return a.scenarioVersion === b.scenarioVersion;
+function sameMeasure(older: RunResult, result: ModeResult, current: RunResult): boolean {
+  if (result.mode === 'verify') return evalVersion(older, result) === current.verifyEvalVersion;
+  if (result.mode === 'review') return evalVersion(older, result) === current.reviewEvalVersion;
+  return older.scenarioVersion === current.scenarioVersion;
 }
 
 /**
@@ -80,7 +87,7 @@ export function previousModes(current: RunResult): Map<Mode, PreviousMode> {
     .sort((a, b) => compareVersions(b.uroboros.version, a.uroboros.version) || b.startedAt.localeCompare(a.startedAt));
   for (const mode of MODES) {
     for (const r of older) {
-      const result = sameMeasure(mode, r, current) ? r.modes.find((m) => m.mode === mode && !m.aborted && !m.notApplicable) : undefined;
+      const result = r.modes.find((m) => m.mode === mode && !m.aborted && !m.notApplicable && sameMeasure(r, m, current));
       if (result) {
         previous.set(mode, { label: r.label, profile: r.profile, result });
         break;

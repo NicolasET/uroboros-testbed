@@ -15,6 +15,8 @@ export const PROBE_PLUGIN_DIR = join(ROOT, 'harness', 'probe-plugin');
  * the user's home, whose ~/.claude/CLAUDE.md would otherwise load as a project file. Checked by workspace.ts.
  */
 export const WORKSPACES_ROOT = process.env.UROBOROS_TESTBED_WORKDIR ?? (process.platform === 'win32' ? 'C:/uro-testbed-work' : tmpdir());
+/** Published uroboros versions are cloned here, outside this repository: a session reads the plugin, and its path must not lead to `scenario/`. */
+export const PLUGINS_DIR = join(WORKSPACES_ROOT, 'plugins');
 
 /** Bump whenever idea.md, truth.md, the hidden tests, the fixture or the oracle's rules change: results of different scenario versions are never compared. v3: the oracle states its corrections whatever the rejecting option is called, and never answers empty. v4: it never keeps a delegated decision open. v5: the fixture moves to spec-kit 1.1.0. v6: the fixture's server answers only a published route table (`src/gateway.ts`) that the in-process tests bypass, and hidden runtime tests start the real server. v7: the pipeline workspaces start with three standing decisions (`scenario/standing-decisions.md`) — the idea contradicts S1 and S3, S2 states what runs used to offer as new — and truth.md settles them and answers "I don't know" to every list of minor cases; the oracle never answers an option that asks which and how with its bare label. */
 export const SCENARIO_VERSION = 7;
@@ -28,8 +30,8 @@ export const VERIFY_EVAL_VERSION = 2;
 /** Runs per verifier eval case: the verifier is not deterministic, so each case reports a rate. */
 export const VERIFY_EVAL_RUNS = 3;
 
-/** The reviewer eval (`review` mode, `scenario/review/`) is versioned apart, like the verifier eval. Bump it whenever `scenario/review/`, its prompts, its scoring or the fixture change; the `review` row is compared only within one eval version. */
-export const REVIEW_EVAL_VERSION = 1;
+/** The reviewer eval (`review` mode, `scenario/review/`) is versioned apart, like the verifier eval. Bump it whenever `scenario/review/`, its prompts, its scoring or the fixture change; the `review` row is compared only within one eval version. v2: two more cases meant to show only in the run's diff, `deleted` (a removed check and its removed test) and `ranking` (an unrequested change to shared code) — 0.16.1 still caught them, from its diff stat and changed-file list — and sessions that cannot read outside their workspace (`harness/sandbox.ts`). */
+export const REVIEW_EVAL_VERSION = 2;
 /** Runs per reviewer eval case. */
 export const REVIEW_EVAL_RUNS = 3;
 
@@ -43,6 +45,8 @@ export const JUDGE_MODEL = 'claude-sonnet-5';
 
 export const MODES = ['default', 'auto', 'goal', 'compat', 'verify', 'review'] as const;
 export type Mode = (typeof MODES)[number];
+/** The modes versioned by their own eval version instead of the scenario's. */
+export const EVAL_MODES: readonly Mode[] = ['verify', 'review'];
 
 /** Wall-clock guard per mode; a full pipeline run takes well under this. */
 export const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000;

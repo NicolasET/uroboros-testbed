@@ -1,8 +1,10 @@
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { query, type ModelUsage, type SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
-import { IDLE_CLOSE_MS, SESSION_TIMEOUT_MS, type Mode } from './config.ts';
+import { IDLE_CLOSE_MS, ROOT, SESSION_TIMEOUT_MS, WORKSPACES_ROOT, type Mode } from './config.ts';
 import type { RoleProfile } from './model-profile.ts';
 import type { AskedQuestion, Oracle } from './oracle.ts';
+import { outsidePath, type Fence } from './sandbox.ts';
 
 export interface SessionOutcome {
   costUsd: number;
@@ -44,6 +46,10 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
   }
   let liveTasks = 0;
   let idleTimer: NodeJS.Timeout | undefined;
+  // The session's own temporary directory, so a command that needs one never reaches what other sessions left there.
+  const tmp = `${req.cwd}-tmp`;
+  mkdirSync(tmp, { recursive: true });
+  const fence: Fence = { allowed: [req.cwd, req.pluginDir, tmp], sensitive: [ROOT, WORKSPACES_ROOT, homedir()], cwd: req.cwd };
 
   try {
     for await (const m of query({
@@ -60,7 +66,14 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
         // in canUseTool. Every other tool is approved there instead.
         permissionMode: 'default',
         abortController,
-        canUseTool: async (toolName, toolInput) => {
+        env: { ...process.env, TMP: tmp, TEMP: tmp, TMPDIR: tmp },
+        // Reads inside the workspace need no permission; everything else comes here, subagents' calls included.
+        canUseTool: async (toolName, toolInput, { blockedPath }) => {
+          const outside = outsidePath(toolName, toolInput, fence, blockedPath);
+          if (outside) {
+            console.log(`[${req.mode}] denied ${toolName} outside the workspace: ${outside}`);
+            return { behavior: 'deny', message: `${outside} is outside this project. Work only inside ${req.cwd}.` };
+          }
           if (toolName !== 'AskUserQuestion') return { behavior: 'allow', updatedInput: toolInput };
           const questions = (toolInput as { questions: AskedQuestion[] }).questions;
           const answers = await req.oracle.answer(req.mode, questions);
