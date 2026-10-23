@@ -28,6 +28,8 @@ export interface JudgeResult {
   contradictions?: ContradictionScore;
   /** Headers of the questions that asked the user to settle a whole list at once and were answered "I don't know". */
   idkLists: string[];
+  /** Seeded modes that may write decisions.md (not `--auto`): active entries another active entry already states, e.g. "S5 restates S1". */
+  duplicates?: string[];
 }
 
 /** The standing decisions the idea contradicts (truth.md, Standing decisions). */
@@ -50,6 +52,8 @@ const STANDING_INSTRUCTIONS = `For each CONTRADICTED STANDING DECISION — an en
 
 const IDK_LIST_INSTRUCTIONS = `Finally, list in "idkLists" the number of every question in QUESTIONS ASKED that asked the user to settle a whole list at once — minor cases to leave out or decide, values to keep as written or change, or behaviors of the built product to keep as built — and whose answer says "I don't know" ("No sé", in any wording). An empty list when there is none.`;
 
+const DUPLICATE_INSTRUCTIONS = `In "duplicates", read FINAL decisions.md and list every active entry (above "## Retired") whose whole content another active entry already states — every rule it states is stated by the other, even in other words — as "S<a> restates S<b>". An entry that shares only part of another does not count. An empty list when there is none.`;
+
 /**
  * Classifies each planted ambiguity — and, where the workspace held the standing decisions, each one the idea
  * contradicts — as asked, recorded, silent or not addressed, and finds the lists answered "I don't know".
@@ -58,6 +62,7 @@ export async function judgeRun(mode: Mode, workspace: string, exchanges: OracleE
   const truth = readFileSync(join(SCENARIO_DIR, 'truth.md'), 'utf8');
   const planted = truth.slice(truth.indexOf('## Planted ambiguities'), truth.indexOf('## Other facts'));
   const seeded = STANDING_DECISIONS_MODES.includes(mode);
+  const writesDecisions = seeded && mode !== 'auto';
   const dir = mode === 'goal' ? featureDir(workspace, '.uroboros') : featureDir(workspace, 'specs');
   const artifacts =
     mode === 'goal'
@@ -72,11 +77,13 @@ export async function judgeRun(mode: Mode, workspace: string, exchanges: OracleE
     INSTRUCTIONS,
     ...(seeded ? [STANDING_INSTRUCTIONS] : []),
     IDK_LIST_INSTRUCTIONS,
+    ...(writesDecisions ? [DUPLICATE_INSTRUCTIONS] : []),
     `PLANTED AMBIGUITIES:\n${planted}`,
     ...(seeded ? [`STANDING DECISIONS (the idea contradicts ${CONTRADICTED.join(' and ')}):\n${readFileSync(STANDING_DECISIONS_SEED, 'utf8')}`] : []),
     `QUESTIONS ASKED (${questions.length}):\n${JSON.stringify(numbered, null, 2)}`,
     `loop-state.md:\n${readIfExists(dir && join(dir, 'loop-state.md'))}`,
     artifacts,
+    ...(writesDecisions ? [`FINAL decisions.md:\n${readIfExists(join(workspace, '.uroboros', 'decisions.md'))}`] : []),
   ].join('\n\n');
   const verdictList = (ids: string[]) => ({
     type: 'array',
@@ -96,15 +103,17 @@ export async function judgeRun(mode: Mode, workspace: string, exchanges: OracleE
       verdicts: verdictList(['P1', 'P2', 'P3', 'P4', 'P5']),
       ...(seeded ? { standing: verdictList(CONTRADICTED) } : {}),
       idkLists: { type: 'array', items: { type: 'integer' } },
+      ...(writesDecisions ? { duplicates: { type: 'array', items: { type: 'string' } } } : {}),
     },
-    required: ['verdicts', 'idkLists', ...(seeded ? ['standing'] : [])],
+    required: ['verdicts', 'idkLists', ...(seeded ? ['standing'] : []), ...(writesDecisions ? ['duplicates'] : [])],
   };
 
-  const { value, costUsd } = await askStructured<{ verdicts: AmbiguityVerdict[]; standing?: AmbiguityVerdict[]; idkLists: number[] }>(JUDGE_MODEL, prompt, schema);
+  const { value, costUsd } = await askStructured<{ verdicts: AmbiguityVerdict[]; standing?: AmbiguityVerdict[]; idkLists: number[]; duplicates?: string[] }>(JUDGE_MODEL, prompt, schema);
   const reached = (vs: AmbiguityVerdict[]) => vs.filter((v) => v.verdict === 'asked' || v.verdict === 'recorded_assumption').length;
   return {
     ambiguity: { detected: reached(value.verdicts), total: 5, verdicts: value.verdicts, judgeCostUsd: costUsd },
     contradictions: value.standing && { surfaced: reached(value.standing), total: CONTRADICTED.length, verdicts: value.standing },
     idkLists: value.idkLists.map((n) => questions[n - 1]?.header ?? `question ${n}`),
+    duplicates: value.duplicates,
   };
 }

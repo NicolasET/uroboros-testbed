@@ -98,6 +98,7 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
     contradictions: judged?.contradictions,
     file: decisionsFile,
     idk: judged && { lists: judged.idkLists, kept: countKeptOnIdk(mode, workspace) },
+    duplicates: judged?.duplicates,
   };
 
   return {

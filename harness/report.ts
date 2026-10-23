@@ -12,6 +12,7 @@ const ROWS: Row[] = [
   ['ambiguities detected', (r) => (r.ambiguity ? `${r.ambiguity.detected}/${r.ambiguity.total}` : '-')],
   ['contradicted standing decisions surfaced', (r) => (r.standing?.contradictions ? `${r.standing.contradictions.surfaced}/${r.standing.contradictions.total}` : '-')],
   ['decisions.md at the end', (r) => (r.standing ? (r.standing.file.pass ? 'pass' : `FAIL (${failed(r.standing.file.checks)})`) : '-')],
+  ['duplicate standing decisions (judge)', (r) => (r.standing?.duplicates ? r.standing.duplicates.join('; ') || 'none' : '-')],
   ['"No sé" to a list (lists · items kept)', (r) => (r.standing?.idk ? (r.standing.idk.lists.length ? `${r.standing.idk.lists.length} · ${r.standing.idk.kept} kept` : 'not exercised') : '-')],
   ['hidden tests', (r) => (r.hidden ? `${r.hidden.passed}/${r.hidden.total}` : '-')],
   ['runtime tests (real server)', (r) => (r.runtime ? `${r.runtime.passed}/${r.runtime.total}` : '-')],

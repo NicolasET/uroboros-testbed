@@ -20,6 +20,8 @@ export interface StandingScore {
   file: EndToEnd;
   /** Lists answered "I don't know" (their headers, from the judge; absent when it failed) and the items loop-state.md kept on that answer. */
   idk?: { lists: string[]; kept: number };
+  /** From the judge, in the modes that may write the file; absent when it failed. */
+  duplicates?: string[];
 }
 
 const normalize = (text: string): string => text.replace(/\r\n/g, '\n').trim();
