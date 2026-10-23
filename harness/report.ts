@@ -8,8 +8,11 @@ import { compareVersions } from './versions.ts';
 type Row = [string, (r: ModeResult) => string];
 
 const ROWS: Row[] = [
-  ['end to end', (r) => (r.e2e.pass ? 'pass' : `FAIL (${Object.entries(r.e2e.checks).filter(([, ok]) => !ok).map(([k]) => k).join('; ')})`)],
+  ['end to end', (r) => (r.e2e.pass ? 'pass' : `FAIL (${failed(r.e2e.checks)})`)],
   ['ambiguities detected', (r) => (r.ambiguity ? `${r.ambiguity.detected}/${r.ambiguity.total}` : '-')],
+  ['contradicted standing decisions surfaced', (r) => (r.standing?.contradictions ? `${r.standing.contradictions.surfaced}/${r.standing.contradictions.total}` : '-')],
+  ['decisions.md at the end', (r) => (r.standing ? (r.standing.file.pass ? 'pass' : `FAIL (${failed(r.standing.file.checks)})`) : '-')],
+  ['"No sé" to a list (lists · items kept)', (r) => (r.standing?.idk ? (r.standing.idk.lists.length ? `${r.standing.idk.lists.length} · ${r.standing.idk.kept} kept` : 'not exercised') : '-')],
   ['hidden tests', (r) => (r.hidden ? `${r.hidden.passed}/${r.hidden.total}` : '-')],
   ['runtime tests (real server)', (r) => (r.runtime ? `${r.runtime.passed}/${r.runtime.total}` : '-')],
   ['verifier (pass/fail/not-run per round)', (r) => (r.verifier ? `${r.verifier.rounds.map((v) => `${v.pass}/${v.fail}/${v.notRun}`).join(' → ')}${r.verifier.caught ? ' — caught a failure, fixed' : ''}` : '-')],
@@ -23,6 +26,10 @@ const ROWS: Row[] = [
   ['duration (min)', (r) => (r.durationMs / 60000).toFixed(1)],
   ['output tokens', (r) => String(r.tokens.output)],
 ];
+
+function failed(checks: Record<string, boolean>): string {
+  return Object.entries(checks).filter(([, ok]) => !ok).map(([k]) => k).join('; ');
+}
 
 /** Clean runs that reported any failure, and failures on scenarios the defect does not break, over all runs. */
 function falseFailures(r: ModeResult): string {
@@ -46,12 +53,15 @@ export interface PreviousMode {
   result: ModeResult;
 }
 
-/** The eval modes are compared only within one eval version; every mode, within one scenario version. */
+/**
+ * The eval modes are compared within one eval version, whatever the scenario version: they read neither truth.md's
+ * answers nor the standing decisions, and a fixture change bumps their versions too. Every other mode, within one
+ * scenario version.
+ */
 function sameMeasure(mode: Mode, a: RunResult, b: RunResult): boolean {
-  if (a.scenarioVersion !== b.scenarioVersion) return false;
   if (mode === 'verify') return a.verifyEvalVersion === b.verifyEvalVersion;
   if (mode === 'review') return a.reviewEvalVersion === b.reviewEvalVersion;
-  return true;
+  return a.scenarioVersion === b.scenarioVersion;
 }
 
 /**
@@ -90,6 +100,11 @@ function modeTable(mode: Mode, current: ModeResult, previous?: ModeResult): stri
     lines.push('', 'Planted ambiguities:', '');
     for (const v of current.ambiguity.verdicts) lines.push(`- **${v.id}** ${v.verdict} — ${v.evidence.replace(/\s+/g, ' ')}`);
   }
+  if (current.standing?.contradictions) {
+    lines.push('', 'Contradicted standing decisions:', '');
+    for (const v of current.standing.contradictions.verdicts) lines.push(`- **${v.id}** ${v.verdict} — ${v.evidence.replace(/\s+/g, ' ')}`);
+  }
+  if (current.standing?.idk?.lists.length) lines.push('', `Lists answered "No sé": ${current.standing.idk.lists.join(' · ')}`);
   if (current.error) lines.push('', `Error: \`${current.error}\``);
   return lines.join('\n');
 }

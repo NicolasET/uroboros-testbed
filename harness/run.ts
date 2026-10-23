@@ -3,14 +3,15 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { join } from 'node:path';
 import { parseArgs } from './args.ts';
 import { checkEndToEnd } from './checks.ts';
-import { MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
-import { judgeAmbiguities } from './judge.ts';
+import { MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, STANDING_DECISIONS_MODES, STANDING_DECISIONS_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
+import { judgeRun } from './judge.ts';
 import { resolveRoleProfile, type RoleProfile } from './model-profile.ts';
 import { Oracle, type OracleExchange } from './oracle.ts';
 import { previousModes, renderSummary } from './report.ts';
 import { sumTokens, usageLimitError, type ModeResult, type RunResult } from './results.ts';
 import { runReviewMode } from './review-eval.ts';
 import { runSession } from './session.ts';
+import { checkDecisionsFile, countKeptOnIdk, type StandingScore } from './standing.ts';
 import { resolveUroboros } from './uroboros-source.ts';
 import { runGate, runHiddenTests, runRuntimeTests } from './verify.ts';
 import { scoreVerifier } from './verifier.ts';
@@ -47,7 +48,8 @@ function readExchanges(logPath: string, mode: Mode): OracleExchange[] {
 async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: RoleProfile, oracle: Oracle, oracleLog: string): Promise<ModeResult> {
   const startedAt = new Date().toISOString();
   const idea = readFileSync(join(SCENARIO_DIR, 'idea.md'), 'utf8').trim();
-  const workspace = await createWorkspace(mode);
+  const seeded = STANDING_DECISIONS_MODES.includes(mode);
+  const workspace = await createWorkspace(mode, seeded ? { '.uroboros/decisions.md': STANDING_DECISIONS_SEED } : {});
   mkdirSync(join(runDir, mode), { recursive: true });
   const askedBefore = oracle.asked;
   const oracleCostBefore = oracle.costUsd;
@@ -89,7 +91,14 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
     pass: false,
     checks: { 'checks could run': false },
   };
-  const ambiguity = buildsCode ? await measure('judge', () => judgeAmbiguities(mode, workspace, readExchanges(oracleLog, mode))) : undefined;
+  const judged = buildsCode ? await measure('judge', () => judgeRun(mode, workspace, readExchanges(oracleLog, mode))) : undefined;
+  const ambiguity = judged?.ambiguity;
+  const decisionsFile = seeded ? await measure('standing decisions', async () => checkDecisionsFile(mode, workspace)) : undefined;
+  const standing: StandingScore | undefined = decisionsFile && {
+    contradictions: judged?.contradictions,
+    file: decisionsFile,
+    idk: judged && { lists: judged.idkLists, kept: countKeptOnIdk(mode, workspace) },
+  };
 
   return {
     mode,
@@ -106,6 +115,7 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
     runtime,
     verifier,
     ambiguity,
+    standing,
     error: failures.length ? failures.join(' | ') : undefined,
   };
 }

@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, mkdtempSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { FIXTURE_DIR, WORKSPACES_ROOT, type Mode } from './config.ts';
@@ -21,11 +21,18 @@ export function assertIsolatedRoot(root = resolve(WORKSPACES_ROOT)): void {
   }
 }
 
-/** A fresh copy of the fixture (with its installed dependencies) as a git repo with one commit. */
-export async function createWorkspace(mode: Mode): Promise<string> {
+/**
+ * A fresh copy of the fixture (with its installed dependencies) as a git repo with one commit.
+ * `seed` maps a path inside the workspace to a file copied there before that commit.
+ */
+export async function createWorkspace(mode: Mode, seed: Record<string, string> = {}): Promise<string> {
   mkdirSync(WORKSPACES_ROOT, { recursive: true });
   const dir = mkdtempSync(join(WORKSPACES_ROOT, `${mode}-`));
   cpSync(FIXTURE_DIR, dir, { recursive: true });
+  for (const [target, source] of Object.entries(seed)) {
+    mkdirSync(dirname(join(dir, target)), { recursive: true });
+    copyFileSync(source, join(dir, target));
+  }
   await execOrThrow('git', ['init', '--quiet', '--initial-branch', 'main'], dir);
   await execOrThrow('git', ['config', 'user.email', 'testbed@uroboros.local'], dir);
   await execOrThrow('git', ['config', 'user.name', 'uroboros testbed'], dir);
