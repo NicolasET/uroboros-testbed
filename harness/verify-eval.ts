@@ -174,8 +174,8 @@ export async function runVerifyMode(req: VerifyModeRequest): Promise<ModeResult>
       mkdirSync(dir, { recursive: true });
       console.log(`[verify] ${c.name} ${i}/${VERIFY_EVAL_RUNS} in ${workspace}`);
       const changed = (await execOrThrow('git', ['diff', '--name-only', 'HEAD~1', 'HEAD'], workspace)).trim();
-      // The fixture commit: the product before the feature, as the plugin's `BASE TREE` would record it.
-      const baseTree = (await execOrThrow('git', ['rev-parse', 'HEAD~1^{tree}'], workspace)).trim();
+      // The fixture commit: the product before the feature, as the plugin's `BASE TREE` would record it. No `^{tree}`: cmd.exe, the shell on Windows, strips the caret.
+      const baseTree = (await execOrThrow('git', ['log', '-1', '--format=%T', 'HEAD~1'], workspace)).trim();
       const transcriptPath = join(dir, 'transcript.jsonl');
       const session = await runSession({
         mode: 'verify',
