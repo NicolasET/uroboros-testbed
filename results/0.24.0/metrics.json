@@ -1,0 +1,185 @@
+{
+  "label": "0.24.0",
+  "scenarioVersion": 8,
+  "verifyEvalVersion": 2,
+  "reviewEvalVersion": 2,
+  "implementEvalVersion": 1,
+  "uroboros": {
+    "requested": "v0.24.0",
+    "version": "0.24.0",
+    "commit": "4f22f81bb6c162216aa238cdb2aa1705c5ddfc86",
+    "dirty": false,
+    "label": "0.24.0"
+  },
+  "profile": {
+    "alias": "opus",
+    "modelId": "claude-opus-5-5",
+    "effort": "medium",
+    "claudeCodeVersion": "2.1.283"
+  },
+  "sdkVersion": "0.3.283",
+  "startedAt": "2026-10-24T17:51:58.039Z",
+  "modes": [
+    {
+      "mode": "implement",
+      "startedAt": "2026-10-24T17:51:58.255Z",
+      "harnessCostUsd": 0.026465,
+      "questionsAsked": 4,
+      "durationMs": 1747886,
+      "costUsd": 8.897912200000002,
+      "tokens": {
+        "input": 376,
+        "output": 154678,
+        "cacheRead": 8498416,
+        "cacheCreation": 662503
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "every run measured": true,
+          "an implementer ran in every run": true,
+          "gate green in every run": true,
+          "every task checked in every run": true,
+          "no session error": true
+        }
+      },
+      "implementEval": {
+        "version": 1,
+        "variants": [
+          {
+            "name": "single",
+            "flags": [],
+            "runs": [
+              {
+                "dispatches": 1,
+                "maxConcurrent": 1,
+                "implementerSumMs": 127499,
+                "implementerTokens": 45880,
+                "implementersSpanMs": 127499,
+                "implementMs": 471184,
+                "costUsd": 2.7327146000000004,
+                "durationMs": 575185,
+                "tokens": {
+                  "input": 118,
+                  "output": 44016,
+                  "cacheRead": 2492613,
+                  "cacheCreation": 218735
+                },
+                "questionsAsked": 2,
+                "gateGreen": true,
+                "everyTaskChecked": true,
+                "hidden": {
+                  "passed": 14,
+                  "total": 14,
+                  "groups": {
+                    "routes: the server publishes the three new routes": {
+                      "passed": 1,
+                      "total": 1
+                    },
+                    "US1: a buyer cancels an open order": {
+                      "passed": 5,
+                      "total": 5
+                    },
+                    "US2: a seller fulfills an open order on their listing": {
+                      "passed": 4,
+                      "total": 4
+                    },
+                    "US3: the parties of an order see its detail": {
+                      "passed": 4,
+                      "total": 4
+                    }
+                  }
+                }
+              },
+              {
+                "dispatches": 1,
+                "maxConcurrent": 1,
+                "implementerSumMs": 123084,
+                "implementerTokens": 47793,
+                "implementersSpanMs": 123084,
+                "implementMs": 563708,
+                "costUsd": 3.4603602000000007,
+                "durationMs": 682131,
+                "tokens": {
+                  "input": 140,
+                  "output": 66174,
+                  "cacheRead": 3436951,
+                  "cacheCreation": 234442
+                },
+                "questionsAsked": 1,
+                "gateGreen": true,
+                "everyTaskChecked": true,
+                "hidden": {
+                  "passed": 14,
+                  "total": 14,
+                  "groups": {
+                    "routes: the server publishes the three new routes": {
+                      "passed": 1,
+                      "total": 1
+                    },
+                    "US1: a buyer cancels an open order": {
+                      "passed": 5,
+                      "total": 5
+                    },
+                    "US2: a seller fulfills an open order on their listing": {
+                      "passed": 4,
+                      "total": 4
+                    },
+                    "US3: the parties of an order see its detail": {
+                      "passed": 4,
+                      "total": 4
+                    }
+                  }
+                }
+              },
+              {
+                "dispatches": 1,
+                "maxConcurrent": 1,
+                "implementerSumMs": 112983,
+                "implementerTokens": 46353,
+                "implementersSpanMs": 112983,
+                "implementMs": 400192,
+                "costUsd": 2.7048374,
+                "durationMs": 490570,
+                "tokens": {
+                  "input": 118,
+                  "output": 44488,
+                  "cacheRead": 2568852,
+                  "cacheCreation": 209326
+                },
+                "questionsAsked": 1,
+                "gateGreen": true,
+                "everyTaskChecked": true,
+                "hidden": {
+                  "passed": 14,
+                  "total": 14,
+                  "groups": {
+                    "routes: the server publishes the three new routes": {
+                      "passed": 1,
+                      "total": 1
+                    },
+                    "US1: a buyer cancels an open order": {
+                      "passed": 5,
+                      "total": 5
+                    },
+                    "US2: a seller fulfills an open order on their listing": {
+                      "passed": 4,
+                      "total": 4
+                    },
+                    "US3: the parties of an order see its detail": {
+                      "passed": 4,
+                      "total": 4
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
