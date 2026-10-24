@@ -1,6 +1,7 @@
 import type { ModelUsage } from '@anthropic-ai/claude-agent-sdk';
 import type { EndToEnd } from './checks.ts';
 import type { Mode } from './config.ts';
+import type { ImplementEval } from './implement-eval.ts';
 import type { AmbiguityScore } from './judge.ts';
 import type { RoleProfile } from './model-profile.ts';
 import type { ReviewerEval } from './review-eval.ts';
@@ -32,6 +33,8 @@ export interface ModeResult {
   verifierEval?: VerifierEval;
   /** `review` mode only: detection of the reviewer on planted defects, and what it reports on a clean copy. */
   reviewerEval?: ReviewerEval;
+  /** `implement` mode only: the implement phase's duration, cost and concurrency on a fixed feature, per variant. */
+  implementEval?: ImplementEval;
   /** Set when the mode does not apply to this uroboros version (e.g. `verify` before the verifier existed). */
   notApplicable?: string;
   ambiguity?: AmbiguityScore;
@@ -49,6 +52,8 @@ export interface RunResult {
   verifyEvalVersion?: number;
   /** The reviewer eval version (`review` mode), compared apart from the scenario version. */
   reviewEvalVersion?: number;
+  /** The implement eval version (`implement` mode), compared apart from the scenario version. */
+  implementEvalVersion?: number;
   uroboros: Omit<UroborosSource, 'dir'>;
   profile: RoleProfile;
   sdkVersion: string;

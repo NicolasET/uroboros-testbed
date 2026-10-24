@@ -1,11 +1,12 @@
-// Entry point: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat,verify,review]
+// Entry point: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat,verify,review,implement]
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from './args.ts';
 import { checkEndToEnd } from './checks.ts';
-import { EVAL_MODES, MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, PLUGINS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, STANDING_DECISIONS_MODES, STANDING_DECISIONS_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
+import { EVAL_MODES, IMPLEMENT_EVAL_VERSION, MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, PLUGINS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, STANDING_DECISIONS_MODES, STANDING_DECISIONS_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
+import { runImplementMode } from './implement-eval.ts';
 import { judgeRun } from './judge.ts';
-import { resolveRoleProfile, type RoleProfile } from './model-profile.ts';
+import { modelFlags, resolveRoleProfile, type RoleProfile } from './model-profile.ts';
 import { Oracle, type OracleExchange } from './oracle.ts';
 import { previousModes, renderSummary } from './report.ts';
 import { sumTokens, usageLimitError, type ModeResult, type RunResult } from './results.ts';
@@ -19,7 +20,7 @@ import { runVerifyMode } from './verify-eval.ts';
 import { assertIsolatedRoot, createWorkspace } from './workspace.ts';
 
 function promptFor(mode: Mode, profile: RoleProfile, idea: string): string {
-  const models = `--reviewer=${profile.alias}:${profile.effort} --implementer=${profile.alias}:${profile.effort}`;
+  const models = modelFlags(profile);
   switch (mode) {
     case 'default':
       return `/uroboros:run ${models} ${idea}`;
@@ -33,6 +34,8 @@ function promptFor(mode: Mode, profile: RoleProfile, idea: string): string {
       throw new Error('the verify mode builds its own prompts (verify-eval.ts)');
     case 'review':
       throw new Error('the review mode builds its own prompts (review-eval.ts)');
+    case 'implement':
+      throw new Error('the implement mode builds its own prompts (implement-eval.ts)');
   }
 }
 
@@ -149,7 +152,7 @@ async function main(): Promise<void> {
   const sdkManifest = join(ROOT, 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'package.json');
   const sdkVersion = (JSON.parse(readFileSync(sdkManifest, 'utf8')) as { version: string }).version;
   const { dir: _dir, ...source } = uroboros;
-  const run: RunResult = { label: uroboros.label, scenarioVersion: SCENARIO_VERSION, verifyEvalVersion: VERIFY_EVAL_VERSION, reviewEvalVersion: REVIEW_EVAL_VERSION, uroboros: source, profile, sdkVersion, startedAt: new Date().toISOString(), modes: [] };
+  const run: RunResult = { label: uroboros.label, scenarioVersion: SCENARIO_VERSION, verifyEvalVersion: VERIFY_EVAL_VERSION, reviewEvalVersion: REVIEW_EVAL_VERSION, implementEvalVersion: IMPLEMENT_EVAL_VERSION, uroboros: source, profile, sdkVersion, startedAt: new Date().toISOString(), modes: [] };
 
   const resultDir = join(RESULTS_DIR, uroboros.label);
   mkdirSync(resultDir, { recursive: true });
@@ -166,7 +169,9 @@ async function main(): Promise<void> {
         ? await runVerifyMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle })
         : mode === 'review'
           ? await runReviewMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle })
-          : await runMode(mode, runDir, uroboros.dir, profile, oracle, oracleLog);
+          : mode === 'implement'
+            ? await runImplementMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracleLog })
+            : await runMode(mode, runDir, uroboros.dir, profile, oracle, oracleLog);
     run.modes.push(result);
     run.modes.sort((a, b) => MODES.indexOf(a.mode) - MODES.indexOf(b.mode));
     // Written after every mode so an interrupted run keeps what it measured.

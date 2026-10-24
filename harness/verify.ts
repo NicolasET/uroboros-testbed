@@ -1,5 +1,5 @@
 import { copyFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { SCENARIO_DIR } from './config.ts';
 import { exec } from './exec.ts';
 
@@ -29,17 +29,18 @@ export async function runGate(workspace: string): Promise<GateResult> {
 
 /** Copies the hidden acceptance tests in after the run and scores them per group. */
 export function runHiddenTests(workspace: string): Promise<HiddenTestsResult> {
-  return runHiddenFile(workspace, ACCEPTANCE_FILE);
+  return runHiddenTestFile(workspace, join(SCENARIO_DIR, 'hidden-tests', ACCEPTANCE_FILE));
 }
 
 /** Copies the hidden runtime tests in after the run: they start the real server, not the in-process app. */
 export function runRuntimeTests(workspace: string): Promise<HiddenTestsResult> {
-  return runHiddenFile(workspace, RUNTIME_FILE);
+  return runHiddenTestFile(workspace, join(SCENARIO_DIR, 'hidden-tests', RUNTIME_FILE));
 }
 
-async function runHiddenFile(workspace: string, file: string): Promise<HiddenTestsResult> {
-  const copy = `zz-hidden-${file}`;
-  copyFileSync(join(SCENARIO_DIR, 'hidden-tests', file), join(workspace, 'test', copy));
+/** Copies a hidden test file into the workspace's `test/` after the run, runs it and scores it per group. */
+export async function runHiddenTestFile(workspace: string, source: string): Promise<HiddenTestsResult> {
+  const copy = `zz-hidden-${basename(source)}`;
+  copyFileSync(source, join(workspace, 'test', copy));
   const { output } = await exec('npx', ['tsx', '--test', '--test-reporter=tap', `test/${copy}`], workspace);
   return parseTap(output);
 }

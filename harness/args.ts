@@ -1,4 +1,4 @@
-import { MODES, type Mode } from './config.ts';
+import { DEFAULT_MODES, MODES, type Mode } from './config.ts';
 
 export interface RunArgs {
   /** A local path to a uroboros checkout, or a git ref (tag or branch) of the published repo. */
@@ -6,11 +6,11 @@ export interface RunArgs {
   modes: Mode[];
 }
 
-const USAGE = 'usage: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat,verify,review]';
+const USAGE = 'usage: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat,verify,review,implement]';
 
 export function parseArgs(argv: string[]): RunArgs {
   let uroboros = '../uroboros';
-  let modes: Mode[] = [...MODES];
+  let modes: Mode[] = [...DEFAULT_MODES];
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = argv[i + 1];

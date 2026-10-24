@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MODES, RESULTS_DIR, type Mode } from './config.ts';
+import { DEFAULT_MODES, MODES, RESULTS_DIR, type Mode } from './config.ts';
+import { implementSection } from './implement-report.ts';
 import type { RoleProfile } from './model-profile.ts';
 import type { ModeResult, RunResult } from './results.ts';
 import { compareVersions } from './versions.ts';
@@ -58,6 +59,7 @@ export interface PreviousMode {
 function evalVersion(run: RunResult, result: ModeResult): number | undefined {
   if (result.mode === 'verify') return result.verifierEval?.version ?? run.verifyEvalVersion;
   if (result.mode === 'review') return result.reviewerEval?.version ?? run.reviewEvalVersion;
+  if (result.mode === 'implement') return result.implementEval?.version ?? run.implementEvalVersion;
   return undefined;
 }
 
@@ -69,6 +71,7 @@ function evalVersion(run: RunResult, result: ModeResult): number | undefined {
 function sameMeasure(older: RunResult, result: ModeResult, current: RunResult): boolean {
   if (result.mode === 'verify') return evalVersion(older, result) === current.verifyEvalVersion;
   if (result.mode === 'review') return evalVersion(older, result) === current.reviewEvalVersion;
+  if (result.mode === 'implement') return evalVersion(older, result) === current.implementEvalVersion;
   return older.scenarioVersion === current.scenarioVersion;
 }
 
@@ -102,6 +105,7 @@ function modeTable(mode: Mode, current: ModeResult, previous?: ModeResult): stri
   if (current.aborted) {
     return [`### ${mode}`, '', `ABORTED — not measured (${current.aborted.slice(0, 160)}). Re-run this mode with \`--modes ${mode}\`.`].join('\n');
   }
+  if (current.implementEval) return [`### ${mode}`, '', ...implementSection(current, previous), ...(current.error ? ['', `Error: \`${current.error}\``] : [])].join('\n');
   const lines = [`### ${mode}`, '', `| | ${previous ? 'previous | ' : ''}this run |`, `|---|${previous ? '---|' : ''}---|`];
   for (const [name, show] of ROWS) lines.push(`| ${name} | ${previous ? `${show(previous)} | ` : ''}${show(current)} |`);
   if (current.ambiguity) {
@@ -126,7 +130,9 @@ function notProven(run: RunResult): string[] {
     'Other projects: one fixture (a Node/TypeScript API on spec-kit 1.1.0) and one feature idea.',
   ];
   if (measured.has('review')) items.push("The refuter's effect: the reviewer eval scores the reviewer's report before the refuter, which only a full pipeline runs.");
-  const unmeasured = MODES.filter((m) => !measured.has(m));
+  if (measured.has('implement')) items.push('Implement speed on other features: the implement eval resumes one fixed feature whose three user stories share no file, the case parallel implementers are built for; a `tasks.md` whose stories share a file runs one implementer, as the pipeline modes show.');
+  // The implement eval runs only when asked for, so a full run does not list it.
+  const unmeasured = DEFAULT_MODES.filter((m) => !measured.has(m));
   if (unmeasured.length) items.push(`Modes not measured in this result: ${unmeasured.join(', ')}.`);
   return ['## Not proven by this run', '', ...items.map((i) => `- ${i}`)];
 }
@@ -142,7 +148,7 @@ export function renderSummary(run: RunResult, previous: Map<Mode, PreviousMode>)
     '',
     `- uroboros: ${run.uroboros.requested} → ${run.uroboros.version} @ ${run.uroboros.commit.slice(0, 7)}${run.uroboros.dirty ? ' (uncommitted changes)' : ''}`,
     `- roles: ${run.profile.modelId} at \`${run.profile.effort}\` effort (the model's default) · Claude Code ${run.profile.claudeCodeVersion} · Agent SDK ${run.sdkVersion}`,
-    `- scenario: v${run.scenarioVersion}${run.verifyEvalVersion ? ` · verifier eval: v${run.verifyEvalVersion}` : ''}${run.reviewEvalVersion ? ` · reviewer eval: v${run.reviewEvalVersion}` : ''} · started: ${run.startedAt}`,
+    `- scenario: v${run.scenarioVersion}${run.verifyEvalVersion ? ` · verifier eval: v${run.verifyEvalVersion}` : ''}${run.reviewEvalVersion ? ` · reviewer eval: v${run.reviewEvalVersion}` : ''}${run.implementEvalVersion ? ` · implement eval: v${run.implementEvalVersion}` : ''} · started: ${run.startedAt}`,
     `- compared with: ${[...byLabel].map(([label, modes]) => `${modes.join(', ')} → ${label}`).join('; ') || 'nothing yet — this is the first result'}`,
   ];
   for (const model of new Set([...previous.values()].map((p) => p.profile.modelId))) {

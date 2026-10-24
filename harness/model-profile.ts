@@ -16,6 +16,9 @@ export interface RoleProfile {
 
 const EFFORTS: readonly EffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
 
+/** The run flags that hand uroboros the role model for the reviewer and the implementer, so it asks no model question. */
+export const modelFlags = (profile: RoleProfile): string => `--reviewer=${profile.alias}:${profile.effort} --implementer=${profile.alias}:${profile.effort}`;
+
 /**
  * Opens a throwaway session on the role model, resets its effort to the model default
  * (`effortLevel: null`), and reads back the effort it runs at through the probe skill.

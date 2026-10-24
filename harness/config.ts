@@ -35,6 +35,11 @@ export const REVIEW_EVAL_VERSION = 2;
 /** Runs per reviewer eval case. */
 export const REVIEW_EVAL_RUNS = 3;
 
+/** The implement eval (`implement` mode, `scenario/implement/`) is versioned apart, like the other evals. Bump it whenever `scenario/implement/`, its prompt, its measures or the fixture change; the `implement` row is compared only within one eval version. */
+export const IMPLEMENT_EVAL_VERSION = 1;
+/** Runs per implement eval variant: durations vary from run to run, so each variant reports every run and their median. */
+export const IMPLEMENT_EVAL_RUNS = 3;
+
 export const UROBOROS_REPO_URL = 'https://github.com/NicolasET/uroboros.git';
 
 /** The three uroboros roles run on the latest Opus; the effort is its own default, resolved at run start. */
@@ -43,10 +48,12 @@ export const ROLE_MODEL_ALIAS = 'opus';
 export const ORACLE_MODEL = 'claude-haiku-4-5-20251001';
 export const JUDGE_MODEL = 'claude-sonnet-5';
 
-export const MODES = ['default', 'auto', 'goal', 'compat', 'verify', 'review'] as const;
+export const MODES = ['default', 'auto', 'goal', 'compat', 'verify', 'review', 'implement'] as const;
 export type Mode = (typeof MODES)[number];
 /** The modes versioned by their own eval version instead of the scenario's. */
-export const EVAL_MODES: readonly Mode[] = ['verify', 'review'];
+export const EVAL_MODES: readonly Mode[] = ['verify', 'review', 'implement'];
+/** The modes a run without `--modes` measures: every mode but the implement eval, which runs only when asked for (~1.5 h per version). */
+export const DEFAULT_MODES: readonly Mode[] = MODES.filter((m) => m !== 'implement');
 
 /** Wall-clock guard per mode; a full pipeline run takes well under this. */
 export const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000;

@@ -4,7 +4,7 @@ A fixed, repeatable end-to-end test for the [uroboros](https://github.com/Nicola
 
 ## What one run measures
 
-For each mode — the default pipeline, `--auto`, `--goal`, `/uroboros:compat`, and the verifier and reviewer evals (`verify`, `review`):
+For each mode — the default pipeline, `--auto`, `--goal`, `/uroboros:compat`, and the verifier and reviewer evals (`verify`, `review`) — plus, only when asked for with `--modes implement`, the implement eval:
 
 | Measure | How |
 |---|---|
@@ -43,6 +43,16 @@ The same idea for uroboros's implement reviewer: whether its report names a defe
 - **Scored**, over 3 runs per case: **detection** — the pinned judge finds a finding or risk that names the planted defect (a `CLEAN` report never counts, even if it mentions the defect in passing); on the clean copy, how many runs returned `CLEAN` and how many findings and risks the others raised; and whether the working tree was left untouched. It scores the reviewer's report as it arrives, before the refuter (only a full pipeline runs the refuter).
 - Versioned apart (`REVIEW_EVAL_VERSION`). Versions before 0.16.0 record the mode as not applicable. Eval v2 runs inside the fence (see Isolation); some v1 runs on published versions read the original fixture. A result keeps its eval modes when a later run of the same uroboros version measures other modes under a new scenario version; each eval mode is compared by the eval version it recorded.
 
+## The implement eval (`implement` mode)
+
+The pipeline modes cannot show how fast implement is when its user stories could be built at the same time: their `tasks.md` puts every story's tests in one file, so uroboros 0.25.0, which under `--parallel=N` runs one implementer per story when the stories share no file, runs one implementer there, as earlier versions do. The `implement` mode measures the implement phase alone, on a feature whose stories share no file:
+
+- **Feature** ([`scenario/implement/feature/`](./scenario/implement/feature/)): buyers cancel open orders, sellers fulfill orders on their listings, and the parties of an order see its detail — `spec.md`, `plan.md`, `tasks.md`, `quickstart.md`, and the `loop-state.md` of a run whose analyze has just closed, shaped after a 0.24.0 run. `tasks.md` follows spec-kit 1.1.0's template: Foundational routes and publishes the three actions to a handler module each, three user stories then each name only their own module and test file, `Dependencies & Execution Order` says they are independent, and Polish runs the gate and the quickstart.
+- **Session**: the workspace holds the fixture committed on `main` and, on the feature branch, the artifacts uncommitted, `.specify/feature.json` and an active run marker, as an interrupted run leaves them. The session resumes it — `/uroboros:run --reviewer=opus:<effort> --implementer=opus:<effort>`, with no idea — and runs implement to the Loop Report: implementers, gate, review, convergence, verification. The mode's own oracle answers from [`scenario/implement/truth.md`](./scenario/implement/truth.md), which holds the decisions the state file already records.
+- **Variants**: from 0.25.0, `default` (no flag: one implementer) and `parallel=3` (`--parallel=3`: one implementer per story); before it, `single` only, with no flag. They alternate run by run, 3 runs each.
+- **Measured**, per run — from the transcript (a subagent starts with the call that launched it and ends that plus the duration its notification reports): implement's wall-clock (first implementer's start → the session's last turn), the implementers' span (first start → last end), implementer dispatches, the most implementers running at once, implementer minutes added up and their tokens; from the Agent SDK, the session's cost, duration and tokens; after the session, the gate, every task checked, 14 hidden tests ([`scenario/implement/hidden-tests/`](./scenario/implement/hidden-tests/), a group per story) and the `### Waves` section of `loop-state.md`. `summary.md` shows each measure per variant as the median and every run, beside the previous version's variants.
+- Versioned apart (`IMPLEMENT_EVAL_VERSION`). Versions before 0.24.0 record the mode as not applicable. A run without `--modes` leaves it out: it takes about 1.5 h for one version with two variants.
+
 ## Run it
 
 Requirements: Node.js 24+, Git, and Claude Code signed in (the Agent SDK uses that login; no API key needed).
@@ -51,11 +61,12 @@ Requirements: Node.js 24+, Git, and Claude Code signed in (the Agent SDK uses th
 npm install
 (cd fixture && npm ci)                                # the fixture's own dependencies: every workspace copies them
 npm test                                              # the harness's own checks (no model calls)
-npm run testbed -- --uroboros ../uroboros             # a local checkout, e.g. before a release
+npm run testbed -- --uroboros ../uroboros             # a local checkout, e.g. before a release (every mode but implement)
 npm run testbed -- --uroboros v0.13.0                 # a published tag
 npm run testbed -- --uroboros ../uroboros --modes compat,goal
 npm run testbed -- --uroboros ../uroboros --modes verify  # the verifier eval alone, ~20 min
 npm run testbed -- --uroboros ../uroboros --modes review  # the reviewer eval alone
+npm run testbed -- --uroboros ../uroboros --modes implement  # the implement eval alone
 ```
 
 A full run takes hours and has no cost ceiling: the cost is recorded, not capped.

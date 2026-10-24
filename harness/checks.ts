@@ -19,6 +19,9 @@ interface Evidence {
   gate?: GateResult;
 }
 
+/** Every task of a `tasks.md` is checked, and there is at least one. Both [X] and [x] mark a done task in markdown. */
+export const everyTaskChecked = (tasks: string): boolean => /^\s*- \[[xX]\]/m.test(tasks) && !/^\s*- \[ \]/m.test(tasks);
+
 /** Deterministic end-to-end checks per mode: did the run finish and leave what it promises? */
 export async function checkEndToEnd(e: Evidence): Promise<EndToEnd> {
   const checks: Record<string, boolean> = { 'session ended without error': !e.session.error };
@@ -28,8 +31,7 @@ export async function checkEndToEnd(e: Evidence): Promise<EndToEnd> {
     const dir = featureDir(e.workspace, 'specs');
     for (const file of ['spec.md', 'plan.md', 'tasks.md', 'loop-state.md']) checks[`${file} exists`] = !!dir && existsSync(join(dir, file));
     const tasks = dir && existsSync(join(dir, 'tasks.md')) ? readFileSync(join(dir, 'tasks.md'), 'utf8') : '';
-    // Both [X] and [x] mark a done task in markdown.
-    checks['every task checked'] = /^\s*- \[[xX]\]/m.test(tasks) && !/^\s*- \[ \]/m.test(tasks);
+    checks['every task checked'] = everyTaskChecked(tasks);
     const branch = await exec('git', ['branch', '--show-current'], e.workspace);
     checks['feature branch created'] = branch.code === 0 && branch.output.trim() !== 'main';
     checks['gate green'] = gateGreen;
