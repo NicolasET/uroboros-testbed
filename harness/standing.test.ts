@@ -84,4 +84,12 @@ describe('items kept on "I don\'t know"', () => {
     assert.equal(countKeptOnIdk('default', dir), 2);
     assert.equal(countKeptOnIdk('goal', dir), 0);
   });
+
+  it('counts a decision once however often the log repeats it (0.23.1 goal: one D11 for two items, on two lines)', () => {
+    const dir = workspace();
+    mkdirSync(join(dir, 'specs', '001-pause'), { recursive: true });
+    const state = ['- D11 Undecided behaviors found by verification: "No sé" → kept as built (kept on "I don\'t know").', '- Open P9 and P10: asked → user "No sé" → kept as built (D11, kept on "I don\'t know").'];
+    writeFileSync(join(dir, 'specs', '001-pause', 'loop-state.md'), state.join('\n'));
+    assert.equal(countKeptOnIdk('default', dir), 1);
+  });
 });
