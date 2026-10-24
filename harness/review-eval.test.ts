@@ -116,6 +116,8 @@ describe('reviewer eval step-B prompt', () => {
     assert.doesNotMatch(state, /SURFACES:/);
     assert.match(read((await prepareWorkspace(caseNamed('clean'), '0.18.0')).workspace, 'specs/001-pause-listing/loop-state.md'), /\nSURFACES: HTTP API only/);
     assert.equal((await prepareWorkspace(caseNamed('clean'), '0.16.2')).trees, undefined);
+    assert.doesNotMatch(state, /### Waves/);
+    assert.match(read((await prepareWorkspace(caseNamed('clean'), '0.25.0')).workspace, 'specs/001-pause-listing/loop-state.md'), /\n### Waves\n\n- none/);
   });
 
   it('is built only for the versions whose step B it reproduces', () => {
@@ -123,7 +125,8 @@ describe('reviewer eval step-B prompt', () => {
     assert.throws(() => stepBPrompt({ ...input, version: '0.15.0' }));
     assert.throws(() => stepBPrompt({ ...input, version: '0.17.0' }), /RUN_DIFF/);
     assert.match(stepBPrompt({ ...input, version: '0.17.0', runDiff: '/x/.git/uroboros/run.diff' }), /\nRUN_DIFF: \/x\/\.git\/uroboros\/run\.diff\n/);
-    assert.throws(() => stepBPrompt({ ...input, version: '0.25.0', runDiff: 'd' }));
+    assert.throws(() => stepBPrompt({ ...input, version: '0.26.0', runDiff: 'd' }));
+    assert.match(stepBPrompt({ ...input, version: '0.25.0', runDiff: 'd' }), /\nRUN_DIFF: d\n/);
     const prompt = stepBPrompt({ ...input, version: '0.16.2', guide: 'GUIDE TEXT' });
     assert.match(prompt, /subagent_type `uroboros:uroboros-reviewer-medium`, model `opus`/);
     assert.match(prompt, /PHASE: implement\nROUND: 1\n/);

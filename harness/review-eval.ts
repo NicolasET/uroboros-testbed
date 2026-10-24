@@ -26,7 +26,7 @@ const FEATURE_PATH = join('specs', '001-pause-listing');
 /** The first uroboros version whose step-B prompt this eval reproduces (ROUND, FOLDS, STANDING_DECISIONS, model guides). */
 export const FIRST_VERSION = '0.16.0';
 /** The first version whose step-B protocol this eval does not reproduce yet: extend `stepBPrompt` before measuring it. */
-export const UNKNOWN_FROM = '0.25.0';
+export const UNKNOWN_FROM = '0.26.0';
 /** From this version step B passes the run's diff between working-tree snapshots (`BASE TREE`, `ROUND TREE`, `RUN_DIFF`). */
 export const SNAPSHOTS_FROM = '0.17.0';
 /** From this version the state file carries the intake's `SURFACES` and the implementer's `### Shared code touched`. */
@@ -34,6 +34,9 @@ export const SURFACES_FROM = '0.18.0';
 /** From this version the state file carries the implementer's `### Red first` lines. */
 export const RED_FIRST_FROM = '0.19.0';
 const RED_FIRST = '\n### Red first\n\n- round 1: not captured — the tests in test/pause.test.ts were written after the code\n';
+/** From this version the state file records implement's plan of waves; step B itself is unchanged. One implementer built the fixed feature. */
+export const WAVES_FROM = '0.25.0';
+const WAVES = '\n### Waves\n\n- none — one dispatch got every task\n';
 /** The surfaces the fixed feature's intake would have recorded: every one of them is in scope. */
 const SURFACES = 'SURFACES: HTTP API only — POST /listings/:id/pause and /resume (in scope); GET /listings search (in scope: paused listings hidden); GET /listings/:id (in scope: shows the status); POST /listings/:id/orders (in scope: refused while paused); the published route table in src/gateway.ts (in scope). No UI, CLI or background jobs.';
 
@@ -117,7 +120,7 @@ export async function prepareWorkspace(c: ReviewCase, version: string): Promise<
 ### Gate touched
 
 - round 1: none
-${atLeast(version, SURFACES_FROM) ? `\n### Shared code touched\n\n- round 1: none\n\n${SURFACES}\n` : ''}${atLeast(version, RED_FIRST_FROM) ? RED_FIRST : ''}`,
+${atLeast(version, SURFACES_FROM) ? `\n### Shared code touched\n\n- round 1: none\n\n${SURFACES}\n` : ''}${atLeast(version, RED_FIRST_FROM) ? RED_FIRST : ''}${atLeast(version, WAVES_FROM) ? WAVES : ''}`,
   );
   return { workspace, trees: { base, round, runDiff } };
 }
