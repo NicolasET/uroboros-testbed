@@ -11,10 +11,9 @@ type Row = [string, (r: ModeResult) => string];
 const ROWS: Row[] = [
   ['end to end', (r) => (r.e2e.pass ? 'pass' : `FAIL (${failed(r.e2e.checks)})`)],
   ['ambiguities detected', (r) => (r.ambiguity ? `${r.ambiguity.detected}/${r.ambiguity.total}` : '-')],
-  ['contradicted standing decisions surfaced', (r) => (r.standing?.contradictions ? `${r.standing.contradictions.surfaced}/${r.standing.contradictions.total}` : '-')],
-  ['decisions.md at the end', (r) => (r.standing ? (r.standing.file.pass ? 'pass' : `FAIL (${failed(r.standing.file.checks)})`) : '-')],
-  ['duplicate standing decisions (judge)', (r) => (r.standing?.duplicates ? r.standing.duplicates.join('; ') || 'none' : '-')],
-  ['"No sé" to a list (lists · items kept)', (r) => (r.standing?.idk ? (r.standing.idk.lists.length ? `${r.standing.idk.lists.length} · ${r.standing.idk.kept} kept` : 'not exercised') : '-')],
+  ['earlier decisions the idea changes, surfaced', (r) => (r.earlier?.changed ? `${r.earlier.changed.surfaced}/${r.earlier.changed.total}` : '-')],
+  ['earlier decision the idea leaves alone, asked again', (r) => (r.earlier?.kept ? (r.earlier.kept.reasked ? 'yes' : 'no') : '-')],
+  ['"No sé" to a list (lists · items kept)', (r) => (r.earlier?.idk ? (r.earlier.idk.lists.length ? `${r.earlier.idk.lists.length} · ${r.earlier.idk.kept} kept` : 'not exercised') : '-')],
   ['hidden tests', (r) => (r.hidden ? `${r.hidden.passed}/${r.hidden.total}` : '-')],
   ['runtime tests (real server)', (r) => (r.runtime ? `${r.runtime.passed}/${r.runtime.total}` : '-')],
   ['verifier (pass/fail/not-run per round)', (r) => (r.verifier ? `${r.verifier.rounds.map((v) => `${v.pass}/${v.fail}/${v.notRun}`).join(' → ')}${r.verifier.caught ? ' — caught a failure, fixed' : ''}` : '-')],
@@ -65,7 +64,7 @@ function evalVersion(run: RunResult, result: ModeResult): number | undefined {
 
 /**
  * The eval modes are compared within one eval version, whatever the scenario version: they read neither truth.md's
- * answers nor the standing decisions, and a fixture change bumps their versions too. Every other mode, within one
+ * answers nor the earlier feature, and a fixture change bumps their versions too. Every other mode, within one
  * scenario version.
  */
 function sameMeasure(older: RunResult, result: ModeResult, current: RunResult): boolean {
@@ -112,11 +111,12 @@ function modeTable(mode: Mode, current: ModeResult, previous?: ModeResult): stri
     lines.push('', 'Planted ambiguities:', '');
     for (const v of current.ambiguity.verdicts) lines.push(`- **${v.id}** ${v.verdict} — ${v.evidence.replace(/\s+/g, ' ')}`);
   }
-  if (current.standing?.contradictions) {
-    lines.push('', 'Contradicted standing decisions:', '');
-    for (const v of current.standing.contradictions.verdicts) lines.push(`- **${v.id}** ${v.verdict} — ${v.evidence.replace(/\s+/g, ' ')}`);
+  if (current.earlier?.changed) {
+    lines.push('', 'Earlier decisions the idea changes:', '');
+    for (const v of current.earlier.changed.verdicts) lines.push(`- **${v.id}** ${v.verdict} — ${v.evidence.replace(/\s+/g, ' ')}`);
   }
-  if (current.standing?.idk?.lists.length) lines.push('', `Lists answered "No sé": ${current.standing.idk.lists.join(' · ')}`);
+  if (current.earlier?.kept?.reasked) lines.push('', `Earlier decision asked again: ${current.earlier.kept.evidence.replace(/\s+/g, ' ')}`);
+  if (current.earlier?.idk?.lists.length) lines.push('', `Lists answered "No sé": ${current.earlier.idk.lists.join(' · ')}`);
   if (current.error) lines.push('', `Error: \`${current.error}\``);
   return lines.join('\n');
 }

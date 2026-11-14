@@ -32,7 +32,7 @@ Answer each question exactly as that user would:
 Return "answers" as a list with exactly one answer per question, in the same order as QUESTIONS.`;
 
 /** Plain names for truth.md's headings, as the user would put them. */
-const HEADINGS: Record<string, string> = { 'Planted ambiguities': 'What I want', 'Other facts': 'Other things I know', 'Standing decisions': "The project's standing decisions" };
+const HEADINGS: Record<string, string> = { 'Planted ambiguities': 'What I want', 'Other facts': 'Other things I know', 'Earlier feature': 'What an earlier feature of the project decided' };
 
 /**
  * What the fictional user knows, the way they would know it: truth.md without what it tells the maintainer and the judge —

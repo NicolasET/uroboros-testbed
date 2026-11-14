@@ -1,6 +1,6 @@
 # Scenario truth — what the fictional user actually wants
 
-The oracle answers every question from this file and nothing else, in the language of the question (the idea is in Spanish, so questions arrive in Spanish). It is fixed: changing it invalidates comparisons with earlier results (bump `SCENARIO_VERSION` in `harness/config.ts`). v2 added the delegation of exact error codes and success bodies. v3 and v4 changed only the oracle's rules (`harness/oracle.ts`), v5 only the fixture's spec-kit (1.0.0 → 1.1.0), and v6 the fixture's server (a route table) and the hidden runtime tests, not this file. v7 added the standing decisions and the line on minor cases here, and one oracle rule. v8 changed how the oracle reads this file — it sees the facts alone (`userView` in `harness/oracle.ts`), without this paragraph, the scoring in the headings or the ids P1–P5 — and split the standing-decision answers into those given while the feature is worked on and those given when it is done: in v7 the oracle set S1 and S3 aside only about half the time.
+The oracle answers every question from this file and nothing else, in the language of the question (the idea is in Spanish, so questions arrive in Spanish). It is fixed: changing it invalidates comparisons with earlier results (bump `SCENARIO_VERSION` in `harness/config.ts`). v2 added the delegation of exact error codes and success bodies. v3 and v4 changed only the oracle's rules (`harness/oracle.ts`), v5 only the fixture's spec-kit (1.0.0 → 1.1.0), and v6 the fixture's server (a route table) and the hidden runtime tests, not this file. v7 added the standing decisions and the line on minor cases here, and one oracle rule. v8 changed how the oracle reads this file — it sees the facts alone (`userView` in `harness/oracle.ts`), without this paragraph, the scoring in the headings or the ids P1–P5 — and split the standing-decision answers into those given while the feature is worked on and those given when it is done: in v7 the oracle set S1 and S3 aside only about half the time. v9 replaced the standing decisions with an earlier feature's run (uroboros 0.29.0 reads earlier features and no longer reads `.uroboros/decisions.md`): two decisions the idea changes, two it leaves alone, and an assumption that decides nothing.
 
 ## Planted ambiguities (scored)
 
@@ -26,13 +26,12 @@ Answers for reasonable questions outside the planted five.
 - Minor cases and rare combinations — any question that lists cases v1 is unlikely to meet (such as two people pausing the same listing at the same moment, a pause arriving while an order is being placed, or which error wins when one request breaks two rules at once) and asks whether to leave them out of this feature or decide some: "I don't know", even when the cases are about errors. When such a list also holds a case this file settles, answer that case and say "I don't know" for the rest.
 - Anything this file does not answer: "I don't know" (the oracle must say so, never invent).
 
-## Standing decisions (not scored as ambiguities)
+## Earlier feature (not scored as ambiguities)
 
-The project's `.uroboros/decisions.md` holds three standing decisions from an earlier feature (`scenario/standing-decisions.md`, copied into the default, auto and goal workspaces). The idea contradicts S1 and S3.
+An earlier feature of the project, `000-moderation`, ran through uroboros and settled some rules (`scenario/earlier-feature/`, copied as `specs/000-moderation/` into the default, auto and goal workspaces). The idea changes D1 and D2 and leaves D3 and D5 as they are. That run also assumed, without asking, that search lists only `active` listings (A1); the user never decided it, so it settles nothing about the visibility of a paused listing.
 
-- **S1 — Only admins change a listing's status.** My idea contradicts it.
-- **S2 — Exact error codes and success bodies are the implementer's choice, in the API's existing error style.** It still holds.
-- **S3 — A listing has a single status, `active`.** My idea contradicts it.
-- While the feature is being worked on, asked what to do about S1 or S3 (keep it, set it aside for this feature, or change it for the project): set it aside for this feature only, whatever the option is called (e.g. "exception here only", "ignore it here"). I do not change or retire a standing decision for the whole project before the work is done, even when an option already proposes the new wording.
-- When the work is done, asked which of this feature's decisions to keep as standing decisions for the whole project: add all listed.
-- When the work is done, asked what to do with the standing decisions this feature set aside: change S1 to "Only admins change a listing's status, except that the seller who owns a listing may pause and resume it", and retire S3. S2 stays as it is.
+- **D1 — A listing has a single status, `active`.** My idea changes it: a listing can now be `paused`.
+- **D2 — Only admins change a listing's status.** My idea changes it: the seller who owns a listing may also pause and resume it.
+- **D3 and D5 — Refusals keep the API's existing error style, and the exact error codes and success bodies are the implementer's choice.** They still hold.
+- Asked whether D1 or D2 still holds now (keep what that feature decided, or decide differently): decide differently, whatever the option is called — a listing can be `paused`, and the seller who owns it, as well as admins, may pause and resume it.
+- When the work is done, asked which of this feature's decisions to keep as standing decisions for the whole project: add none.

@@ -3,7 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from
 import { join } from 'node:path';
 import { parseArgs } from './args.ts';
 import { checkEndToEnd } from './checks.ts';
-import { EVAL_MODES, IMPLEMENT_EVAL_VERSION, MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, PLUGINS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, STANDING_DECISIONS_MODES, STANDING_DECISIONS_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
+import { EVAL_MODES, IMPLEMENT_EVAL_VERSION, MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, PLUGINS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, EARLIER_FEATURE, EARLIER_FEATURE_MODES, EARLIER_FEATURE_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
 import { runImplementMode } from './implement-eval.ts';
 import { judgeRun } from './judge.ts';
 import { modelFlags, resolveRoleProfile, type RoleProfile } from './model-profile.ts';
@@ -12,7 +12,7 @@ import { previousModes, renderSummary } from './report.ts';
 import { sumTokens, usageLimitError, type ModeResult, type RunResult } from './results.ts';
 import { runReviewMode } from './review-eval.ts';
 import { runSession } from './session.ts';
-import { checkDecisionsFile, countKeptOnIdk, type StandingScore } from './standing.ts';
+import { countKeptOnIdk, type EarlierScore } from './earlier.ts';
 import { resolveUroboros } from './uroboros-source.ts';
 import { runGate, runHiddenTests, runRuntimeTests } from './verify.ts';
 import { scoreVerifier } from './verifier.ts';
@@ -51,8 +51,9 @@ function readExchanges(logPath: string, mode: Mode): OracleExchange[] {
 async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: RoleProfile, oracle: Oracle, oracleLog: string): Promise<ModeResult> {
   const startedAt = new Date().toISOString();
   const idea = readFileSync(join(SCENARIO_DIR, 'idea.md'), 'utf8').trim();
-  const seeded = STANDING_DECISIONS_MODES.includes(mode);
-  const workspace = await createWorkspace(mode, seeded ? { '.uroboros/decisions.md': STANDING_DECISIONS_SEED } : {});
+  const seeded = EARLIER_FEATURE_MODES.includes(mode);
+  const earlierSeed = Object.fromEntries(['loop-state.md', 'spec.md'].map((f) => [`specs/${EARLIER_FEATURE}/${f}`, join(EARLIER_FEATURE_SEED, f)]));
+  const workspace = await createWorkspace(mode, seeded ? earlierSeed : {});
   mkdirSync(join(runDir, mode), { recursive: true });
   const askedBefore = oracle.asked;
   const oracleCostBefore = oracle.costUsd;
@@ -96,13 +97,10 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
   };
   const judged = buildsCode ? await measure('judge', () => judgeRun(mode, workspace, readExchanges(oracleLog, mode))) : undefined;
   const ambiguity = judged?.ambiguity;
-  const decisionsFile = seeded ? await measure('standing decisions', async () => checkDecisionsFile(mode, workspace)) : undefined;
-  const standing: StandingScore | undefined = decisionsFile && {
-    contradictions: judged?.contradictions,
-    file: decisionsFile,
-    idk: judged && { lists: judged.idkLists, kept: countKeptOnIdk(mode, workspace) },
-    duplicates: judged?.duplicates,
-  };
+  const earlier: EarlierScore | undefined =
+    seeded && buildsCode
+      ? { changed: judged?.changed, kept: judged?.kept, idk: judged && { lists: judged.idkLists, kept: countKeptOnIdk(mode, workspace) } }
+      : undefined;
 
   return {
     mode,
@@ -119,7 +117,7 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
     runtime,
     verifier,
     ambiguity,
-    standing,
+    earlier,
     error: failures.length ? failures.join(' | ') : undefined,
   };
 }

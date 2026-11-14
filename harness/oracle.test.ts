@@ -14,7 +14,7 @@ describe("the oracle's view of truth.md", () => {
   it('keeps every fact', () => {
     assert.equal(facts(view).length, facts(truth).length);
     assert.match(view, /The seller who owns the listing, and admins\./);
-    assert.match(view, /- \*\*S1 — Only admins change a listing's status\.\*\*/);
+    assert.match(view, /- \*\*D2 — Only admins change a listing's status\.\*\*/);
   });
 
   it('says nothing about the scoring, the file or the scenario', () => {
@@ -25,6 +25,6 @@ describe("the oracle's view of truth.md", () => {
   });
 
   it('names its sections the way the user would', () => {
-    assert.deepEqual(view.split('\n').filter((l) => l.startsWith('## ')), ['## What I want', '## Other things I know', "## The project's standing decisions"]);
+    assert.deepEqual(view.split('\n').filter((l) => l.startsWith('## ')), ['## What I want', '## Other things I know', '## What an earlier feature of the project decided']);
   });
 });

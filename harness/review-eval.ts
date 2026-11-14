@@ -25,8 +25,8 @@ export const REVIEW_DIR = join(SCENARIO_DIR, 'review');
 const FEATURE_PATH = join('specs', '001-pause-listing');
 /** The first uroboros version whose step-B prompt this eval reproduces (ROUND, FOLDS, STANDING_DECISIONS, model guides). */
 export const FIRST_VERSION = '0.16.0';
-/** The first version whose step-B protocol this eval does not reproduce yet: extend `stepBPrompt` before measuring it. */
-export const UNKNOWN_FROM = '0.29.0';
+/** The first version whose step-B protocol this eval does not reproduce yet: extend `stepBPrompt` before measuring it. 0.29.0 passes `EARLIER_FEATURES` in place of `STANDING_DECISIONS`, only when the project has earlier features, and this eval's workspace has none, so its prompt is unchanged. */
+export const UNKNOWN_FROM = '0.30.0';
 /** From this version step B passes the run's diff between working-tree snapshots (`BASE TREE`, `ROUND TREE`, `RUN_DIFF`). */
 export const SNAPSHOTS_FROM = '0.17.0';
 /** From this version the state file carries the intake's `SURFACES` and the implementer's `### Shared code touched`. */

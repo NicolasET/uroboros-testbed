@@ -5,7 +5,7 @@ import type { ImplementEval } from './implement-eval.ts';
 import type { AmbiguityScore } from './judge.ts';
 import type { RoleProfile } from './model-profile.ts';
 import type { ReviewerEval } from './review-eval.ts';
-import type { StandingScore } from './standing.ts';
+import type { EarlierScore } from './earlier.ts';
 import type { UroborosSource } from './uroboros-source.ts';
 import type { GateResult, HiddenTestsResult } from './verify.ts';
 import type { VerifierEval } from './verify-eval.ts';
@@ -38,8 +38,10 @@ export interface ModeResult {
   /** Set when the mode does not apply to this uroboros version (e.g. `verify` before the verifier existed). */
   notApplicable?: string;
   ambiguity?: AmbiguityScore;
-  /** Scenario v7+, modes seeded with the standing decisions: contradictions, the decisions file at the end, lists answered "I don't know". */
-  standing?: StandingScore;
+  /** Scenario v9+, modes seeded with the earlier feature: its decisions the idea changes, one it leaves alone, lists answered "I don't know". */
+  earlier?: EarlierScore;
+  /** Scenario v7–v8 only (committed results): the standing decisions. Never written since v9. */
+  standing?: unknown;
   error?: string;
   /** Set when the account's usage or rate limit cut the mode short: its numbers measure nothing, re-run it. */
   aborted?: string;
