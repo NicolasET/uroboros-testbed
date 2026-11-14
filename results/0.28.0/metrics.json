@@ -1,0 +1,481 @@
+{
+  "label": "0.28.0",
+  "scenarioVersion": 9,
+  "verifyEvalVersion": 2,
+  "reviewEvalVersion": 2,
+  "implementEvalVersion": 1,
+  "uroboros": {
+    "requested": "v0.28.0",
+    "version": "0.28.0",
+    "commit": "4c92709244dc32a6c32b2ebf0f745f9a3c8d3089",
+    "dirty": false,
+    "label": "0.28.0"
+  },
+  "profile": {
+    "alias": "opus",
+    "modelId": "claude-opus-5-5",
+    "effort": "medium",
+    "claudeCodeVersion": "2.1.283"
+  },
+  "sdkVersion": "0.3.283",
+  "startedAt": "2026-11-14T01:14:38.953Z",
+  "modes": [
+    {
+      "mode": "default",
+      "startedAt": "2026-11-14T01:14:39.182Z",
+      "durationMs": 1899944,
+      "costUsd": 10.006451400000001,
+      "harnessCostUsd": 0.398857,
+      "tokens": {
+        "input": 378,
+        "output": 153810,
+        "cacheRead": 13843887,
+        "cacheCreation": 681558
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 19,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "spec.md exists": true,
+          "plan.md exists": true,
+          "tasks.md exists": true,
+          "loop-state.md exists": true,
+          "every task checked": true,
+          "feature branch created": true,
+          "gate green": true,
+          "loop report produced": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 11,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 3,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 2,
+            "total": 2
+          }
+        }
+      },
+      "runtime": {
+        "passed": 3,
+        "total": 3,
+        "groups": {
+          "runtime: through the running server": {
+            "passed": 3,
+            "total": 3
+          }
+        }
+      },
+      "verifier": {
+        "rounds": [
+          {
+            "pass": 16,
+            "fail": 0,
+            "notRun": 1
+          }
+        ],
+        "caught": false
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "asked",
+            "evidence": "Q3 'Quién pausa': '¿Quién puede pausar y reanudar una publicación?' options 'Solo el vendedor dueño'/'Dueño y administradores'/'Solo administradores' → answer 'Dueño y administradores'"
+          },
+          {
+            "id": "P2",
+            "verdict": "asked",
+            "evidence": "Q2 'Pausada': search/orders question → 'Oculta y sin pedidos' (hidden from search). Q5 'Detalle': '¿Y si alguien abre su detalle directamente con su id?' → answer 'Cualquiera la ve' (status paused shown)"
+          },
+          {
+            "id": "P3",
+            "verdict": "asked",
+            "evidence": "Q2 'Pausada': '...cualquier comprador puede hacer un pedido sobre cualquier publicación...' options incl. 'Oculta y sin pedidos' → answer 'Oculta y sin pedidos' (no new orders)"
+          },
+          {
+            "id": "P4",
+            "verdict": "asked",
+            "evidence": "Q1 'Ranking': '¿Qué significa «sin perder su ranking»?...' options 'Conserva su puntaje'/'Vuelve a su mismo lugar'/'No lo sé' → answer 'Conserva su puntaje'"
+          },
+          {
+            "id": "P5",
+            "verdict": "asked",
+            "evidence": "Q4 'Repetidos': '¿Qué pasa si alguien pausa una publicación que ya está pausada, o reanuda una que ya está activa?' options 'Se rechaza con error'/'Se acepta sin cambios' → answer 'Se acepta sin cambios'"
+          }
+        ],
+        "judgeCostUsd": 0.165637
+      },
+      "earlier": {
+        "changed": {
+          "surfaced": 1,
+          "total": 2,
+          "verdicts": [
+            {
+              "id": "D1",
+              "verdict": "silent",
+              "evidence": "spec.md FR-001: 'A listing MUST be able to have the status `paused` in addition to `active`.' — adds the second status with no question or recorded assumption revisiting 000-moderation's D1 ('Solo activa, por ahora')"
+            },
+            {
+              "id": "D2",
+              "verdict": "asked",
+              "evidence": "Q3 'Quién pausa': 'En la función anterior de moderación quedó la regla «solo los administradores cambian el estado de una publicación», y pausar cambia el estado... ¿Quién puede pausar y reanudar?' → 'Dueño y administradores'"
+            }
+          ]
+        },
+        "kept": {
+          "reasked": true,
+          "evidence": "Q8 'Respuestas': '¿Quién decide los códigos de error exactos (...) y qué devuelve la API cuando pausar o reanudar sale bien? ... ' options 'Quien lo implemente'/'Los defino yo' → answer 'Quien lo implemente' (re-asks D5, already settled 'que lo elija quien lo implemente')"
+        },
+        "idk": {
+          "lists": [],
+          "kept": 0
+        }
+      }
+    },
+    {
+      "mode": "auto",
+      "startedAt": "2026-11-14T01:47:26.082Z",
+      "durationMs": 978325,
+      "costUsd": 6.333334999999996,
+      "harnessCostUsd": 0.14461000000000002,
+      "tokens": {
+        "input": 242,
+        "output": 100918,
+        "cacheRead": 7046885,
+        "cacheCreation": 473559
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 0,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "spec.md exists": true,
+          "plan.md exists": true,
+          "tasks.md exists": true,
+          "loop-state.md exists": true,
+          "every task checked": true,
+          "feature branch created": true,
+          "gate green": true,
+          "loop report produced": true,
+          "no question after the up-front batch": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 8,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 2,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 0,
+            "total": 2
+          }
+        }
+      },
+      "runtime": {
+        "passed": 3,
+        "total": 3,
+        "groups": {
+          "runtime: through the running server": {
+            "passed": 3,
+            "total": 3
+          }
+        }
+      },
+      "verifier": {
+        "rounds": [
+          {
+            "pass": 14,
+            "fail": 0,
+            "notRun": 0
+          }
+        ],
+        "caught": false
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "recorded_assumption",
+            "evidence": "Only the seller who owns the listing may pause or resume it; other sellers, buyers and admins are refused (403), an unknown caller 401, an unknown listing 404. Rationale: smallest reading of \"los vendedores\". (A1 ← Q1)"
+          },
+          {
+            "id": "P2",
+            "verdict": "recorded_assumption",
+            "evidence": "a paused listing is left out of search for everyone (owner included), refuses new orders with a 4xx..., stays readable by id with status `paused`, and existing orders and the orders list are untouched. (A3 ← Q3, rule)"
+          },
+          {
+            "id": "P3",
+            "verdict": "recorded_assumption",
+            "evidence": "A new order on a paused listing is refused with 409 (conflict with the listing's state), after the existing order checks. Rationale: state conflict, not a permission problem. (A10 ← Q11, clarify)"
+          },
+          {
+            "id": "P4",
+            "verdict": "recorded_assumption",
+            "evidence": "\"Sin perder su ranking\" keeps the score: rankScore is not changed by pause or resume; after resume the listing sits wherever that score places it with the existing tie-break. No position is reserved. (A2 ← Q2)"
+          },
+          {
+            "id": "P5",
+            "verdict": "recorded_assumption",
+            "evidence": "Repeated actions are refused with 409: pausing a paused listing, resuming an active one. Rationale: explicit, reversible, no silent success. (A4 ← Q4)"
+          }
+        ],
+        "judgeCostUsd": 0.14461000000000002
+      },
+      "earlier": {
+        "changed": {
+          "surfaced": 0,
+          "total": 2,
+          "verdicts": [
+            {
+              "id": "D1",
+              "verdict": "silent",
+              "evidence": "`paused` becomes a second listing status that sellers set, amending 000-moderation FR-001/FR-002 for this case → refuted (decided): the idea says \"una publicación pausada tiene status `paused`\" and that sellers pause. (Q9)"
+            },
+            {
+              "id": "D2",
+              "verdict": "silent",
+              "evidence": "`paused` becomes a second listing status that sellers set, amending 000-moderation FR-001/FR-002 for this case → refuted (decided): the idea says \"una publicación pausada tiene status `paused`\" and that sellers pause. (Q9)"
+            }
+          ]
+        },
+        "kept": {
+          "reasked": false,
+          "evidence": "none"
+        },
+        "idk": {
+          "lists": [],
+          "kept": 0
+        }
+      }
+    },
+    {
+      "mode": "goal",
+      "startedAt": "2026-11-14T02:05:01.620Z",
+      "durationMs": 828428,
+      "costUsd": 4.0325451999999995,
+      "harnessCostUsd": 0.19738200000000006,
+      "tokens": {
+        "input": 186,
+        "output": 63429,
+        "cacheRead": 4990226,
+        "cacheCreation": 281256
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 10,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "goal.md exists": true,
+          "loop-state.md exists": true,
+          "marker closed as complete": true,
+          "gate green": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 11,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 3,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 2,
+            "total": 2
+          }
+        }
+      },
+      "runtime": {
+        "passed": 3,
+        "total": 3,
+        "groups": {
+          "runtime: through the running server": {
+            "passed": 3,
+            "total": 3
+          }
+        }
+      },
+      "verifier": {
+        "rounds": [
+          {
+            "pass": 8,
+            "fail": 0,
+            "notRun": 0
+          }
+        ],
+        "caught": false
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "asked",
+            "evidence": "Q2 'Quién puede pausar y reanudar una publicación?' options 'Solo su vendedor'/'Su vendedor y los admins'/'Cualquier vendedor'; answer: 'Su vendedor y los admins'"
+          },
+          {
+            "id": "P2",
+            "verdict": "asked",
+            "evidence": "Q3 bundles search+detail+orders; answer 'Oculta, detalle visible' -> D3 log: 'detail still opens for anyone and shows it is paused'"
+          },
+          {
+            "id": "P3",
+            "verdict": "asked",
+            "evidence": "Q3 'Esta regla decide: la búsqueda, el detalle, los pedidos nuevos...' answer 'Oculta, detalle visible' -> rule log 'accepts no new orders'"
+          },
+          {
+            "id": "P4",
+            "verdict": "asked",
+            "evidence": "Q1 'Cuando dices que al pausarla no pierde su ranking, ¿qué debe conservarse?' options 'Conservar el puntaje'/'Conservar la posición exacta'; answer: 'Conservar el puntaje'"
+          },
+          {
+            "id": "P5",
+            "verdict": "asked",
+            "evidence": "Q4 '¿Qué pasa si alguien pausa una publicación que ya está pausada, o reanuda una que ya está activa?' answer: 'Éxito sin cambios'"
+          }
+        ],
+        "judgeCostUsd": 0.136518
+      },
+      "earlier": {
+        "changed": {
+          "surfaced": 1,
+          "total": 2,
+          "verdicts": [
+            {
+              "id": "D1",
+              "verdict": "silent",
+              "evidence": "goal.md Out of scope: 'Any status other than `active` and `paused`.' — the second status is simply introduced/confirmed in the plan summary (Q9) without any question flagging that it overrides 000-moderation's D1 ('single status active, no other for now'), unlike the explicit callout used for D2."
+            },
+            {
+              "id": "D2",
+              "verdict": "asked",
+              "evidence": "Q2: 'Ojo: en la función anterior de moderación decidiste que solo los administradores cambian el estado de una publicación; pausar sería una excepción a esa regla.' — explicitly asks user to decide this point anew."
+            }
+          ]
+        },
+        "kept": {
+          "reasked": true,
+          "evidence": "Q6: '¿Quién elige los códigos de respuesta exactos de pausar y reanudar ... y qué devuelve la API cuando sale bien?' options 'Que los elija quien implemente' / 'Los defino yo' — re-poses as an open choice the point D5 already settled (exact codes/success bodies are the implementer's choice)."
+        },
+        "idk": {
+          "lists": [
+            "Detenerse"
+          ],
+          "kept": 0
+        }
+      }
+    },
+    {
+      "mode": "compat",
+      "startedAt": "2026-11-14T02:20:18.548Z",
+      "durationMs": 69588,
+      "costUsd": 0.36952,
+      "harnessCostUsd": 0,
+      "tokens": {
+        "input": 16,
+        "output": 3635,
+        "cacheRead": 302100,
+        "cacheCreation": 29542
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 0,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "report printed": true,
+          "verdict covered": true,
+          "no CHANGED or MISSING row": true
+        }
+      }
+    }
+  ]
+}
