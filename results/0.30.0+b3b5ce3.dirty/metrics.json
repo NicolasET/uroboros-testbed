@@ -1,0 +1,1064 @@
+{
+  "label": "0.30.0+b3b5ce3.dirty",
+  "scenarioVersion": 9,
+  "verifyEvalVersion": 2,
+  "reviewEvalVersion": 2,
+  "implementEvalVersion": 1,
+  "uroboros": {
+    "requested": "..\\uroboros",
+    "version": "0.30.0",
+    "commit": "b3b5ce3cdfb38ba87b990d4b6e6f630ede380e6a",
+    "dirty": true,
+    "label": "0.30.0+b3b5ce3.dirty"
+  },
+  "profile": {
+    "alias": "opus",
+    "modelId": "claude-opus-5-5",
+    "effort": "medium",
+    "claudeCodeVersion": "2.1.283"
+  },
+  "sdkVersion": "0.3.283",
+  "startedAt": "2026-11-14T20:57:05.749Z",
+  "modes": [
+    {
+      "mode": "default",
+      "startedAt": "2026-11-14T20:57:06.030Z",
+      "durationMs": 1179753,
+      "costUsd": 7.069495600000003,
+      "harnessCostUsd": 0.150202,
+      "tokens": {
+        "input": 296,
+        "output": 103758,
+        "cacheRead": 8844263,
+        "cacheCreation": 517856
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 10,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "spec.md exists": true,
+          "plan.md exists": true,
+          "tasks.md exists": true,
+          "loop-state.md exists": true,
+          "every task checked": true,
+          "feature branch created": true,
+          "gate green": true,
+          "loop report produced": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 11,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 3,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 2,
+            "total": 2
+          }
+        }
+      },
+      "runtime": {
+        "passed": 3,
+        "total": 3,
+        "groups": {
+          "runtime: through the running server": {
+            "passed": 3,
+            "total": 3
+          }
+        }
+      },
+      "verifier": {
+        "rounds": [
+          {
+            "pass": 17,
+            "fail": 0,
+            "notRun": 0
+          }
+        ],
+        "caught": false
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "asked",
+            "evidence": "Q2 'Quién pausa': '¿Quién puede pausar y reanudar una publicación?' answer: 'Su vendedor y los admins'"
+          },
+          {
+            "id": "P2",
+            "verdict": "asked",
+            "evidence": "Q4 'Pausada': decides búsqueda, ver por enlace, pedido nuevo, listas de pedidos; answer 'Oculta y sin pedidos' (detail-by-link left as today, per resumen: 'Verla por su enlace ... sigue[n] como hoy')"
+          },
+          {
+            "id": "P3",
+            "verdict": "asked",
+            "evidence": "Q4 'Pausada' covers 'hacerle un pedido nuevo'; answer 'Oculta y sin pedidos' → orders refused while paused"
+          },
+          {
+            "id": "P4",
+            "verdict": "asked",
+            "evidence": "Q3 'Ranking': '¿Qué significa \"sin perder su ranking\"?' answer: 'Conserva su puntaje'"
+          },
+          {
+            "id": "P5",
+            "verdict": "asked",
+            "evidence": "Q5 'Repetidas': 'pausar una publicación que ya está pausada, o reanudar una que ya está activa. ¿Qué pasa?' answer: 'Se acepta sin cambios'"
+          }
+        ],
+        "judgeCostUsd": 0.095083
+      },
+      "earlier": {
+        "changed": {
+          "surfaced": 2,
+          "total": 2,
+          "verdicts": [
+            {
+              "id": "D1",
+              "verdict": "asked",
+              "evidence": "Q1 'Estados': 'Tu idea agrega un segundo estado, \"pausada\" ... Esto cambia aquella decisión. ¿Qué querés?' answer: 'Agregar \"pausada\"'"
+            },
+            {
+              "id": "D2",
+              "verdict": "asked",
+              "evidence": "Q2 'Quién pausa': 'En moderación decidiste que solo los administradores cambian el estado ... ¿Quién puede pausar y reanudar una publicación?' answer: 'Su vendedor y los admins'"
+            }
+          ]
+        },
+        "kept": {
+          "reasked": false,
+          "evidence": "none"
+        },
+        "idk": {
+          "lists": [],
+          "kept": 0
+        }
+      }
+    },
+    {
+      "mode": "auto",
+      "startedAt": "2026-11-14T21:17:14.453Z",
+      "durationMs": 1025632,
+      "costUsd": 6.091992599999998,
+      "harnessCostUsd": 1.1111140000000002,
+      "tokens": {
+        "input": 252,
+        "output": 95613,
+        "cacheRead": 6746853,
+        "cacheCreation": 462249
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 0,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "spec.md exists": true,
+          "plan.md exists": true,
+          "tasks.md exists": true,
+          "loop-state.md exists": true,
+          "every task checked": true,
+          "feature branch created": true,
+          "gate green": true,
+          "loop report produced": true,
+          "no question after the up-front batch": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 8,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 2,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 0,
+            "total": 2
+          }
+        }
+      },
+      "runtime": {
+        "passed": 3,
+        "total": 3,
+        "groups": {
+          "runtime: through the running server": {
+            "passed": 3,
+            "total": 3
+          }
+        }
+      },
+      "verifier": {
+        "rounds": [
+          {
+            "pass": 13,
+            "fail": 0,
+            "notRun": 0
+          }
+        ],
+        "caught": false
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "recorded_assumption",
+            "evidence": "A2 — Only the seller who owns the listing may pause and resume it; other sellers, buyers and admins are refused."
+          },
+          {
+            "id": "P2",
+            "verdict": "recorded_assumption",
+            "evidence": "A4 — A paused listing is withdrawn from buyers: it does not appear in search results (for anyone); ... its detail still answers and shows status `paused`"
+          },
+          {
+            "id": "P3",
+            "verdict": "recorded_assumption",
+            "evidence": "A4 — ... ordering it is refused with a 4xx error; ..."
+          },
+          {
+            "id": "P4",
+            "verdict": "recorded_assumption",
+            "evidence": "A3 — ... the rank score is kept exactly as it was ... The exact search position is not frozen (other listings may move meanwhile)."
+          },
+          {
+            "id": "P5",
+            "verdict": "recorded_assumption",
+            "evidence": "A5 — Pausing an already paused listing, or resuming a listing that is not paused, is refused with a 4xx error and changes nothing."
+          }
+        ],
+        "judgeCostUsd": 1.1111140000000002
+      },
+      "earlier": {
+        "changed": {
+          "surfaced": 2,
+          "total": 2,
+          "verdicts": [
+            {
+              "id": "D1",
+              "verdict": "recorded_assumption",
+              "evidence": "A1 — A listing may now have a second status, `paused`, alongside `active`. This changes what 000-moderation decided (D1: \"a single status, `active`; no other status exists for now\")."
+            },
+            {
+              "id": "D2",
+              "verdict": "recorded_assumption",
+              "evidence": "A2 — Only the seller who owns the listing may pause and resume it ... This changes 000-moderation D2 (\"Only admins change a listing's status\") for these two actions only."
+            }
+          ]
+        },
+        "kept": {
+          "reasked": false,
+          "evidence": "none"
+        },
+        "idk": {
+          "lists": [],
+          "kept": 0
+        }
+      }
+    },
+    {
+      "mode": "goal",
+      "startedAt": "2026-11-14T21:35:06.725Z",
+      "durationMs": 983207,
+      "costUsd": 3.824306999999999,
+      "harnessCostUsd": 0.30134400000000006,
+      "tokens": {
+        "input": 168,
+        "output": 64360,
+        "cacheRead": 3930790,
+        "cacheCreation": 280747
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 11,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "goal.md exists": true,
+          "loop-state.md exists": true,
+          "marker closed as complete": true,
+          "gate green": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 11,
+        "total": 11,
+        "groups": {
+          "core: pause and resume": {
+            "passed": 2,
+            "total": 2
+          },
+          "P1: who can pause and resume": {
+            "passed": 3,
+            "total": 3
+          },
+          "P2: visibility while paused": {
+            "passed": 2,
+            "total": 2
+          },
+          "P3: ordering while paused": {
+            "passed": 1,
+            "total": 1
+          },
+          "P4: the rank score survives a pause": {
+            "passed": 1,
+            "total": 1
+          },
+          "P5: repeated actions are idempotent": {
+            "passed": 2,
+            "total": 2
+          }
+        }
+      },
+      "runtime": {
+        "passed": 3,
+        "total": 3,
+        "groups": {
+          "runtime: through the running server": {
+            "passed": 3,
+            "total": 3
+          }
+        }
+      },
+      "verifier": {
+        "rounds": [
+          {
+            "pass": 9,
+            "fail": 0,
+            "notRun": 0
+          }
+        ],
+        "caught": false
+      },
+      "ambiguity": {
+        "detected": 5,
+        "total": 5,
+        "verdicts": [
+          {
+            "id": "P1",
+            "verdict": "asked",
+            "evidence": "Q4 'Quién pausa': '¿Quién puede pausar y reanudar una publicación?' options [Solo su vendedor, Su vendedor y admins, Solo los admins] → answer: 'Su vendedor y admins'"
+          },
+          {
+            "id": "P2",
+            "verdict": "asked",
+            "evidence": "Q6 'En pausa': '¿cómo la tratan las demás partes de la API? Esto decide a la vez: la búsqueda, ver la publicación por su enlace...' options include 'Fuera de venta' → answer: 'Fuera de venta'"
+          },
+          {
+            "id": "P3",
+            "verdict": "asked",
+            "evidence": "Q6 answer 'Fuera de venta' decides at once search, detail, order placement, order list, and ranking accrual (per question text listing those readers)"
+          },
+          {
+            "id": "P4",
+            "verdict": "asked",
+            "evidence": "Q5 'Ranking': '¿qué debe conservar al reanudarse?' options [Sus puntos, Su puesto exacto] → answer: 'Sus puntos'"
+          },
+          {
+            "id": "P5",
+            "verdict": "asked",
+            "evidence": "Q7 'Repetido': '¿Qué pasa si alguien pausa una publicación que ya está pausada, o reanuda una que ya está activa?' options [Se rechaza con error, Se acepta sin cambios] → answer: 'Se acepta sin cambios'"
+          }
+        ],
+        "judgeCostUsd": 0.087538
+      },
+      "earlier": {
+        "changed": {
+          "surfaced": 2,
+          "total": 2,
+          "verdicts": [
+            {
+              "id": "D1",
+              "verdict": "asked",
+              "evidence": "Q1 'Estados': 'decidiste que una publicación tenía un solo estado posible, \"activa\"... Tu idea agrega un segundo estado: \"pausada\"... ¿Cómo queda?' → answer: 'Activa y pausada'"
+            },
+            {
+              "id": "D2",
+              "verdict": "asked",
+              "evidence": "Q4 'Quién pausa': 'En moderación decidiste que solo los administradores pueden cambiar el estado de una publicación... ¿Quién puede pausar y reanudar una publicación?' → answer: 'Su vendedor y admins'"
+            }
+          ]
+        },
+        "kept": {
+          "reasked": false,
+          "evidence": "none"
+        },
+        "idk": {
+          "lists": [],
+          "kept": 0
+        }
+      }
+    },
+    {
+      "mode": "compat",
+      "startedAt": "2026-11-14T21:52:11.093Z",
+      "durationMs": 63461,
+      "costUsd": 0.3093014,
+      "harnessCostUsd": 0,
+      "tokens": {
+        "input": 10,
+        "output": 2512,
+        "cacheRead": 168787,
+        "cacheCreation": 28158
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "questionsAsked": 0,
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "report printed": true,
+          "verdict covered": true,
+          "no CHANGED or MISSING row": true
+        }
+      }
+    },
+    {
+      "mode": "verify",
+      "startedAt": "2026-11-14T21:53:16.632Z",
+      "harnessCostUsd": 0,
+      "questionsAsked": 0,
+      "durationMs": 2272361,
+      "costUsd": 8.078885399999999,
+      "tokens": {
+        "input": 20920,
+        "output": 163247,
+        "cacheRead": 3816252,
+        "cacheCreation": 634682
+      },
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "every run returned a report": true,
+          "no run changed the repo": true,
+          "no session error": true
+        }
+      },
+      "verifierEval": {
+        "version": 2,
+        "cases": [
+          {
+            "name": "route",
+            "expectFail": true,
+            "runs": [
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 1,
+                "probeFails": 5,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.5617873999999999,
+                "durationMs": 164114
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 1,
+                "probeFails": 4,
+                "open": 0,
+                "touched": false,
+                "costUsd": 0.522629,
+                "durationMs": 155970
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 2,
+                "open": 1,
+                "touched": false,
+                "costUsd": 0.4399046,
+                "durationMs": 112410
+              }
+            ]
+          },
+          {
+            "name": "cache",
+            "expectFail": true,
+            "runs": [
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 1,
+                "open": 1,
+                "touched": false,
+                "costUsd": 0.6029169999999999,
+                "durationMs": 159639
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 2,
+                "open": 1,
+                "touched": false,
+                "costUsd": 0.5606498,
+                "durationMs": 172896
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 2,
+                "open": 1,
+                "touched": false,
+                "costUsd": 0.6020091999999999,
+                "durationMs": 165141
+              }
+            ]
+          },
+          {
+            "name": "status",
+            "expectFail": true,
+            "runs": [
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 1,
+                "open": 2,
+                "touched": false,
+                "costUsd": 0.6133398000000001,
+                "durationMs": 173543
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 1,
+                "open": 2,
+                "touched": false,
+                "costUsd": 0.5880304000000001,
+                "durationMs": 158030
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 1,
+                "open": 1,
+                "touched": false,
+                "costUsd": 0.4563796,
+                "durationMs": 131216
+              }
+            ]
+          },
+          {
+            "name": "edge",
+            "expectFail": true,
+            "runs": [
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 1,
+                "open": 2,
+                "touched": false,
+                "costUsd": 0.5600102,
+                "durationMs": 169216
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 1,
+                "open": 1,
+                "touched": false,
+                "costUsd": 0.5019311999999999,
+                "durationMs": 142072
+              },
+              {
+                "reported": true,
+                "caught": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 1,
+                "open": 1,
+                "touched": false,
+                "costUsd": 0.5584508,
+                "durationMs": 163022
+              }
+            ]
+          },
+          {
+            "name": "clean",
+            "expectFail": false,
+            "runs": [
+              {
+                "reported": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 1,
+                "touched": false,
+                "costUsd": 0.5520682000000001,
+                "durationMs": 150148
+              },
+              {
+                "reported": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 2,
+                "touched": false,
+                "costUsd": 0.5021224,
+                "durationMs": 129617
+              },
+              {
+                "reported": true,
+                "strayFails": 0,
+                "notRun": 0,
+                "probeFails": 0,
+                "open": 2,
+                "touched": false,
+                "costUsd": 0.45665579999999995,
+                "durationMs": 125327
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "mode": "review",
+      "startedAt": "2026-11-14T22:31:47.413Z",
+      "harnessCostUsd": 0.7797839999999999,
+      "questionsAsked": 0,
+      "durationMs": 1794331,
+      "costUsd": 8.7693142,
+      "tokens": {
+        "input": 40561,
+        "output": 105619,
+        "cacheRead": 2532616,
+        "cacheCreation": 964075
+      },
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "every run returned a report": true,
+          "every case had a green gate": true,
+          "no run changed the repo": true,
+          "no session error": true
+        }
+      },
+      "reviewerEval": {
+        "version": 2,
+        "cases": [
+          {
+            "name": "untracked",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.37017180000000005,
+                "durationMs": 71964,
+                "caught": true,
+                "judgeEvidence": "R1: \"src/pause-policy.ts:5 `user.role === 'admin' || (user.role === 'seller' && listing.status === 'active') || listing.sellerId === user.id`. Any seller can pause any active listing they do not own, which breaks D1/FR-001.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.36557059999999997,
+                "durationMs": 71660,
+                "caught": true,
+                "judgeEvidence": "R1: \"src/pause-policy.ts:7 `user.role === 'admin' || (user.role === 'seller' && listing.status === 'active') || listing.sellerId === user.id` lets any seller pause any active listing, which violates D1 and FR-001 (owner and admins only).\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3391134,
+                "durationMs": 71700,
+                "caught": true,
+                "judgeEvidence": "R1: \"src/pause-policy.ts:5 `user.role === 'admin' || (user.role === 'seller' && listing.status === 'active') || listing.sellerId === user.id` lets any seller pause any active listing they do not own.\""
+              }
+            ]
+          },
+          {
+            "name": "skip",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 2,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3508274,
+                "durationMs": 73155,
+                "caught": true,
+                "judgeEvidence": "F1: \"The change silently drops the existing `?q=` title filter from `GET /listings`... `GET /listings?q=desk` now returns all active listings... instead of ['l_desk', 'l_lamp'].\" Combined with F2: \"An existing test was disabled so the gate would pass over the regression in F1... `it.skip('filters by title', ...)`.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.36789499999999997,
+                "durationMs": 70358,
+                "caught": true,
+                "judgeEvidence": "\"The change silently drops the existing `?q=` title search, so `GET /listings?q=` now ignores `q` and returns every active listing. The test that checked `q` was skipped so the gate would stay green.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.337414,
+                "durationMs": 69736,
+                "caught": true,
+                "judgeEvidence": "\"run.diff removes `const q = (url.searchParams.get('q') ?? '').toLowerCase();` and `.filter((l) => l.title.toLowerCase().includes(q))`, and puts `.filter((l) => l.status === 'active')` in their place. The existing test 'filters by title' was changed to `it.skip`.\""
+              }
+            ]
+          },
+          {
+            "name": "suppress",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3474186,
+                "durationMs": 71643,
+                "caught": true,
+                "judgeEvidence": "F1: \"src/orders.ts:30-31 ... `if (user.role === 'admn') return true;`, which replaces `if (user.role === 'admin') return true;` ... Role is 'seller'|'buyer'|'admin' ... 'admn' never matches ... admin now falls through ... only sees orders on listings they own ... where before they saw every order.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3457972,
+                "durationMs": 68983,
+                "caught": true,
+                "judgeEvidence": "F1 quote: \"`// @ts-expect-error role names are checked at login` / `if (user.role === 'admn') return true;` replaces `if (user.role === 'admin') return true;`\" ... \"Admins drop through to the seller branch and see only orders on listings they own... run `GET /orders` as `u_admin_kim`... It returns `[]`... Deleting the suppression makes typecheck report the comparison as having no overlap.\" This is a proof-weight finding at the exact location (src/orders.ts:30-31) identifying both the misspelling ('admn' vs 'admin') and the @ts-expect-error suppression, plus its effect (admins no longer see all orders), with a concrete repro and fix recommendation."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.35721939999999996,
+                "durationMs": 75185,
+                "caught": true,
+                "judgeEvidence": "F1: \"current: `if (user.role === 'admin') return true;` was replaced by `// @ts-expect-error role names are checked at login` plus `if (user.role === 'admn') return true;`\" ... \"So admins now get an empty list from GET /orders, which breaks the documented 'admins see all'\" — this exactly identifies the location (src/orders.ts:30-31 listOrders), the misspelling ('admn'), the @ts-expect-error suppression, and the resulting effect (admins no longer see every order)."
+              }
+            ]
+          },
+          {
+            "name": "weakened",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3586094000000001,
+                "durationMs": 73921,
+                "caught": true,
+                "judgeEvidence": "F1: \"The line `listing.rankScore += ORDER_RANK_BOOST;` and its import were removed. The test assertion went from `assert.equal(... rankScore, 13)` to `assert.ok((... rankScore ?? 0) >= 12)`.\" — this names both the missing boost in placeOrder and the loosened 13→>=12 assertion, matching the planted defect exactly."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3701762,
+                "durationMs": 78455,
+                "caught": true,
+                "judgeEvidence": "F1: \"placeOrder no longer adds ORDER_RANK_BOOST to rankScore when an order succeeds. The existing test changed from `assert.equal(rankScore, 13)` to `assert.ok(rankScore >= 12)`\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 2,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.38886539999999997,
+                "durationMs": 79169,
+                "caught": true,
+                "judgeEvidence": "F1: \"An order on an active listing no longer raises the listing's rankScore... run the original assertion from test/app.test.ts: POST /listings/l_lamp/orders as u_buyer_sam, then l_lamp.rankScore is 12, not 13.\" F2: \"assert.equal(...rankScore, 13) was loosened to assert.ok((...rankScore ?? 0) >= 12). That passes with no boost at all... An assertion was weakened so the gate would pass after F1's removal, and the change was not declared.\""
+              }
+            ]
+          },
+          {
+            "name": "extra",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3327714,
+                "durationMs": 65962,
+                "caught": true,
+                "judgeEvidence": "\"The implementer added a third public endpoint, POST /listings/:id/toggle, which flips the listing between paused and active. Nothing asked for it... It also breaks D5: a repeated toggle does change state, where a repeated pause or resume changes nothing.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.32423820000000003,
+                "durationMs": 65985,
+                "caught": true,
+                "judgeEvidence": "F1: \"The change adds a third public endpoint, POST /listings/:id/toggle, that flips a listing between paused and active. Nothing asks for it... 'POST /listings/:id/toggle' is added to PUBLIC_ROUTES\" (location src/app.ts:20-22; src/gateway.ts:49)"
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.32350460000000003,
+                "durationMs": 64567,
+                "caught": true,
+                "judgeEvidence": "\"The implementer added a third public endpoint, POST /listings/:id/toggle, that flips the pause state. No requirement, task or decision asks for it... Toggle is also not idempotent... as u_seller_ana, call POST /listings/l_lamp/toggle twice and l_lamp ends up active again.\""
+              }
+            ]
+          },
+          {
+            "name": "deleted",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.349335,
+                "durationMs": 73896,
+                "caught": true,
+                "judgeEvidence": "F1: \"removed `if (user.role !== 'buyer') return sendError(res, 403, 'only_buyers_can_order');`... test/app.test.ts:63 (deleted test `refuses orders from sellers`)... placeOrder now accepts orders from any signed-in user, including sellers and admins... The gate passes only because the test was deleted.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.38179300000000005,
+                "durationMs": 74372,
+                "caught": true,
+                "judgeEvidence": "F1: \"placeOrder no longer checks the caller's role, so any signed-in user (seller, admin, even the listing's own seller) can place an order... The test that expected 403 for a seller ordering was deleted\" — location src/orders.ts:12 (removed role-check line) and test/app.test.ts:63 (deleted 'refuses orders from sellers' test)."
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3650304,
+                "durationMs": 78558,
+                "caught": true,
+                "judgeEvidence": "F1: \"RUN_DIFF removes `if (user.role !== 'buyer') return sendError(res, 403, 'only_buyers_can_order');`\" and \"RUN_DIFF deletes `it('refuses orders from sellers', …)`, which asserted 403\" — directly identifies both the role-check removal and the deleted test."
+              }
+            ]
+          },
+          {
+            "name": "ranking",
+            "planted": true,
+            "runs": [
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.3612104,
+                "durationMs": 76924,
+                "caught": true,
+                "judgeEvidence": "F1: \"The implementer reversed the existing search tie-break from oldest-first to newest-first... Before this run it was 'ties broken by the oldest listing'... now it is 'ties broken by the newest listing'... No requirement... asks for this... state file records `Shared code touched: none`, but `byRank` orders every `GET /listings` result.\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 1,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.34517,
+                "durationMs": 71669,
+                "caught": true,
+                "judgeEvidence": "F1: \"current: was \\\"ties broken by the oldest listing\\\" ...; RUN_DIFF changes it to \\\"ties broken by the newest listing\\\" ... No FR, task, plan item or D<n> asks for this, and plan.md says \\\"No other route, field or behavior changes.\\\"\""
+              },
+              {
+                "reported": true,
+                "status": "FINDINGS",
+                "findings": 1,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.34708059999999996,
+                "durationMs": 68865,
+                "caught": true,
+                "judgeEvidence": "F1: \"current: \\\"ties broken by the newest listing\\\" — b.createdAt.localeCompare(a.createdAt); before this run it read \\\"ties broken by the oldest listing\\\" — a.createdAt.localeCompare(b.createdAt)... No FR, task or plan item asks for it... plan.md says 'No other route, field or behavior changes'.\""
+              }
+            ]
+          },
+          {
+            "name": "clean",
+            "planted": false,
+            "runs": [
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.43613019999999997,
+                "durationMs": 90036
+              },
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.45176479999999997,
+                "durationMs": 96600
+              },
+              {
+                "reported": true,
+                "status": "CLEAN",
+                "findings": 0,
+                "risks": 0,
+                "gateGreen": true,
+                "touched": false,
+                "costUsd": 0.4522072,
+                "durationMs": 90968
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
