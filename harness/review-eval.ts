@@ -3,10 +3,11 @@
 // the pipeline modes cannot: whether the reviewer's report names a defect the gate does not catch (detection), and
 // what it reports on a clean change. No pipeline runs; the change is the reference implementation plus its tests.
 // The prompt follows the step-B protocol of the uroboros version measured (`stepBPrompt`). The reviewer's report is
-// scored as it arrives — before the refuter, which only a full pipeline runs.
+// scored as it arrives (raw), and from 0.29.0 again after step C's refuter (`refuterPrompt`): an item the refuter drops
+// never reaches the user or a fix, so a defect named only by dropped items is lost there.
 import { createHash } from 'node:crypto';
-import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { appendFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import type { ModelUsage } from '@anthropic-ai/claude-agent-sdk';
 import { JUDGE_MODEL, REVIEW_EVAL_RUNS, REVIEW_EVAL_VERSION, ROOT, SCENARIO_DIR } from './config.ts';
 import { exec, execOrThrow } from './exec.ts';
@@ -25,8 +26,15 @@ export const REVIEW_DIR = join(SCENARIO_DIR, 'review');
 const FEATURE_PATH = join('specs', '001-pause-listing');
 /** The first uroboros version whose step-B prompt this eval reproduces (ROUND, FOLDS, STANDING_DECISIONS, model guides). */
 export const FIRST_VERSION = '0.16.0';
-/** The first version whose step-B protocol this eval does not reproduce yet: extend `stepBPrompt` before measuring it. 0.29.0 passes `EARLIER_FEATURES` in place of `STANDING_DECISIONS`, only when the project has earlier features, and this eval's workspace has none, so its prompt is unchanged. 0.30.0 leaves step B as it was: its parts protocol starts other sessions and does not touch a review. */
-export const UNKNOWN_FROM = '0.31.0';
+/** The first version whose step-B protocol this eval does not reproduce yet: extend `stepBPrompt` before measuring it. 0.29.0 passes `EARLIER_FEATURES` in place of `STANDING_DECISIONS`, only when the project has earlier features, and this eval's workspace has none, so its prompt is unchanged. 0.30.0 leaves step B as it was: its parts protocol starts other sessions and does not touch a review. 0.31.0 adds `REVIEW_RULES` and the state file's `JUDGING SOURCES` and `REVIEW RULES` (`JUDGING_FROM`). */
+export const UNKNOWN_FROM = '0.32.0';
+/** From this version the state file records `JUDGING SOURCES` and `REVIEW RULES`, and step B passes `REVIEW_RULES` when the project has a `REVIEW.md`. */
+export const JUDGING_FROM = '0.31.0';
+const JUDGING_SOURCES = "- JUDGING SOURCES: specs/ .uroboros/ .specify/ '.claude/skills/speckit-*' ':(glob)**/REVIEW.md' ':(glob)**/CLAUDE.md' ':(glob)**/AGENTS.md' ':(exclude).uroboros/active-run.json'";
+/** The first version whose step-C refuter dispatch this eval reproduces (`EARLIER_FEATURES` in place of `STANDING_DECISIONS`); earlier versions are scored raw only. */
+export const REFUTER_FROM = '0.29.0';
+/** Refuter reasons that drop an item: it is neither asked nor folded. `decided` and `discoverable` are folded, so the item still acts. */
+const DROPPING = new Set(['unreachable', 'no-outcome', 'not-this-run']);
 /** From this version step B passes the run's diff between working-tree snapshots (`BASE TREE`, `ROUND TREE`, `RUN_DIFF`). */
 export const SNAPSHOTS_FROM = '0.17.0';
 /** From this version the state file carries the intake's `SURFACES` and the implementer's `### Shared code touched`. */
@@ -45,6 +53,8 @@ export interface RunTrees {
   base: string;
   round: string;
   runDiff: string;
+  /** From 0.31.0, when the case has review rules: the rules file step B passes as `REVIEW_RULES`. */
+  reviewRules?: string;
 }
 
 export interface ReviewCase {
@@ -53,6 +63,18 @@ export interface ReviewCase {
   overlay: string | null;
   /** The planted defect in plain words, for the judge; null for the clean copy. */
   defect: string | null;
+  /** Directory under `scenario/review/` holding the project's `REVIEW.md`, laid down before the change, so it is part of the base. */
+  rules?: string | null;
+}
+
+/** One finding or risk of a LOOP-REVIEW-FINDINGS report, as step C splits them. */
+export interface ReviewItem {
+  id: string;
+  weight?: string;
+  /** A `derived_from:` finding is folded without the refuter, as a `proof` one is fixed without it. */
+  derived: boolean;
+  /** The item's lines verbatim, for the refuter's `FINDINGS:`. */
+  text: string;
 }
 
 export interface ReviewRun {
@@ -63,6 +85,14 @@ export interface ReviewRun {
   /** Defect cases only: the judge found a finding or risk that names the planted defect. */
   caught?: boolean;
   judgeEvidence?: string;
+  /** The ids of the items the judge says name the defect. */
+  judgeIds?: string[];
+  /** From 0.29.0: the items still acting after the refuter — not sent to it (`proof`, `derived_from`), or not dropped by it. */
+  surviving?: number;
+  /** From 0.29.0, defect cases: an item naming the defect survived the refuter. */
+  caughtAfterRefuter?: boolean;
+  /** From 0.29.0: the refuter returned its results (or had nothing to refute). */
+  refuterReported?: boolean;
   /** The case's gate (test, typecheck, lint) was green, as every case requires. */
   gateGreen: boolean;
   /** The working tree differed after the session. */
@@ -86,6 +116,11 @@ export function copyFeature(workspace: string): void {
   cpSync(join(REVIEW_DIR, 'feature'), join(workspace, FEATURE_PATH), { recursive: true });
 }
 
+/** The case's project review rules (`REVIEW.md`), laid down with the feature artifacts, before the change. */
+export function copyRules(workspace: string, c: ReviewCase): void {
+  if (c.rules) cpSync(join(REVIEW_DIR, c.rules), workspace, { recursive: true });
+}
+
 /** Lays the change over a fixture copy: the reference implementation, its tests, then the case's defect. */
 export function buildReviewCase(workspace: string, c: ReviewCase): void {
   cpSync(join(ROOT, 'harness', 'reference', 'src'), join(workspace, 'src'), { recursive: true });
@@ -101,6 +136,7 @@ export function buildReviewCase(workspace: string, c: ReviewCase): void {
 export async function prepareWorkspace(c: ReviewCase, version: string): Promise<{ workspace: string; trees?: RunTrees }> {
   const workspace = await createWorkspace('review');
   copyFeature(workspace);
+  copyRules(workspace, c);
   await execOrThrow('git', ['add', '-A'], workspace);
   await execOrThrow('git', ['commit', '--quiet', '-m', 'feature-artifacts'], workspace);
   if (!atLeast(version, SNAPSHOTS_FROM)) {
@@ -122,7 +158,18 @@ export async function prepareWorkspace(c: ReviewCase, version: string): Promise<
 - round 1: none
 ${atLeast(version, SURFACES_FROM) ? `\n### Shared code touched\n\n- round 1: none\n\n${SURFACES}\n` : ''}${atLeast(version, RED_FIRST_FROM) ? RED_FIRST : ''}${atLeast(version, WAVES_FROM) ? WAVES : ''}`,
   );
-  return { workspace, trees: { base, round, runDiff } };
+  if (!atLeast(version, JUDGING_FROM)) return { workspace, trees: { base, round, runDiff } };
+  const reviewRules = c.rules ? await writeReviewRules(workspace, base) : undefined;
+  appendFileSync(join(workspace, FEATURE_PATH, 'loop-state.md'), `\n${JUDGING_SOURCES}\n- REVIEW RULES: ${reviewRules ? 'REVIEW.md' : 'none'}\n`);
+  return { workspace, trees: { base, round, runDiff, reviewRules } };
+}
+
+/** The root `REVIEW.md` as the base tree holds it, under its path, where the plugin writes it (implement protocol, Review rules). */
+async function writeReviewRules(workspace: string, base: string): Promise<string> {
+  const target = resolve(workspace, (await execOrThrow('git', ['rev-parse', '--git-path', 'uroboros/review-rules.md'], workspace)).trim());
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, `## REVIEW.md\n\n${await execOrThrow('git', ['show', `${base}:REVIEW.md`], workspace)}`);
+  return target;
 }
 
 const lines = (text: string) => text.split(/\r?\n/).filter(Boolean);
@@ -135,17 +182,18 @@ export async function changedFiles(workspace: string, version: string, trees?: R
   return [...tracked, ...lines(await execOrThrow('git', ['ls-files', '--others', '--exclude-standard'], workspace))];
 }
 
-/** The `## Reviewer` section of the plugin's model guide for this exact model, which step B pastes verbatim. */
-export function reviewerGuide(pluginDir: string, modelId: string): string | undefined {
+/** A role's section (`## Reviewer`, `## Refuter`) of the plugin's model guide for this exact model, which a dispatch pastes verbatim. */
+export function reviewerGuide(pluginDir: string, modelId: string, role = 'Reviewer'): string | undefined {
   const dir = join(pluginDir, 'references', 'model-guides');
   if (!existsSync(dir)) return undefined;
   const id = modelId.replace(/\[.*\]$/, '');
   for (const file of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
     const text = readFileSync(join(dir, file), 'utf8').replace(/\r\n/g, '\n');
     if (/^model_id:\s*(.+)$/m.exec(text)?.[1]?.trim() !== id) continue;
-    const start = text.indexOf('\n## Reviewer\n');
+    const heading = `\n## ${role}\n`;
+    const start = text.indexOf(heading);
     if (start < 0) return undefined;
-    const body = text.slice(start + '\n## Reviewer\n'.length);
+    const body = text.slice(start + heading.length);
     const end = body.indexOf('\n## ');
     return (end < 0 ? body : body.slice(0, end)).trim();
   }
@@ -174,19 +222,14 @@ export interface StepBInput {
   guide?: string;
   /** From 0.17.0: the path of the run's unified diff. */
   runDiff?: string;
+  /** From 0.31.0, when the project has a `REVIEW.md`: the rules file. */
+  reviewRules?: string;
 }
 
-/** The orchestrator's implement step-B prompt for the measured version, handed to the main thread to dispatch verbatim. */
-export function stepBPrompt(input: StepBInput): string {
-  if (!atLeast(input.version, FIRST_VERSION) || atLeast(input.version, UNKNOWN_FROM)) {
-    throw new Error(`the reviewer eval reproduces step B for ${FIRST_VERSION} up to before ${UNKNOWN_FROM}, not ${input.version}`);
-  }
-  if (atLeast(input.version, SNAPSHOTS_FROM) && !input.runDiff) throw new Error(`step B of ${input.version} passes RUN_DIFF`);
+/** The inputs step B passes after its `ROUND` line, which step C's refuter receives too (all but ROUND, FOLDS and the instruction line). */
+function sharedInputs(input: StepBInput): string[] {
   const feature = join(input.workspace, FEATURE_PATH);
-  const dispatch = [
-    `INSTRUCTIONS: ${join(input.pluginDir, 'references', 'reviewer-instructions.md')}`,
-    'PHASE: implement',
-    'ROUND: 1',
+  return [
     'RUN_MODE: default',
     `STATE_FILE: ${join(feature, 'loop-state.md')}`,
     `FEATURE_DIR: ${feature}`,
@@ -198,15 +241,107 @@ export function stepBPrompt(input: StepBInput): string {
     'DECISION LOG:',
     decisionLog(),
     `GATE RESULT: ${gateLine(input.gate)}`,
-    ...(input.guide ? ['MODEL GUIDE:', input.guide] : []),
-    'Read the state file first; interrogate per your profile (from round 2, verify the folds only); CLEAN requires evidence; do not re-report anything already resolved in the state file, DECISION LOG, or ASSUMPTION LOG.',
-  ].join('\n');
+    ...(input.reviewRules && atLeast(input.version, JUDGING_FROM) ? [`REVIEW_RULES: ${input.reviewRules}`] : []),
+  ];
+}
+
+/** Wraps a dispatch so the main thread runs it on the reviewer variant of the chosen effort and replies with the report verbatim. */
+function dispatchVerbatim(profile: RoleProfile, dispatch: string[]): string {
   return [
-    `Use the Agent tool once: subagent_type \`uroboros:uroboros-reviewer-${input.profile.effort}\`, model \`${input.profile.alias}\`, and as its prompt exactly the text between the markers. Wait for its report, then reply with the report verbatim and nothing else. Do not run, read or change anything yourself.`,
+    `Use the Agent tool once: subagent_type \`uroboros:uroboros-reviewer-${profile.effort}\`, model \`${profile.alias}\`, and as its prompt exactly the text between the markers. Wait for its report, then reply with the report verbatim and nothing else. Do not run, read or change anything yourself.`,
     '<<<',
-    dispatch,
+    dispatch.join('\n'),
     '>>>',
   ].join('\n');
+}
+
+function checkVersion(input: StepBInput): void {
+  if (!atLeast(input.version, FIRST_VERSION) || atLeast(input.version, UNKNOWN_FROM)) {
+    throw new Error(`the reviewer eval reproduces step B for ${FIRST_VERSION} up to before ${UNKNOWN_FROM}, not ${input.version}`);
+  }
+  if (atLeast(input.version, SNAPSHOTS_FROM) && !input.runDiff) throw new Error(`step B of ${input.version} passes RUN_DIFF`);
+}
+
+/** The orchestrator's implement step-B prompt for the measured version, handed to the main thread to dispatch verbatim. */
+export function stepBPrompt(input: StepBInput): string {
+  checkVersion(input);
+  return dispatchVerbatim(input.profile, [
+    `INSTRUCTIONS: ${join(input.pluginDir, 'references', 'reviewer-instructions.md')}`,
+    'PHASE: implement',
+    'ROUND: 1',
+    ...sharedInputs(input),
+    ...(input.guide ? ['MODEL GUIDE:', input.guide] : []),
+    'Read the state file first; interrogate per your profile (from round 2, verify the folds only); CLEAN requires evidence; do not re-report anything already resolved in the state file, DECISION LOG, or ASSUMPTION LOG.',
+  ]);
+}
+
+/**
+ * Step C's refuter dispatch for the measured version (from 0.29.0): the reviewer variant of the refuter's effort — the
+ * reviewer's, with no `--refuter=` — with the refuter instructions, the inputs step B passed but ROUND, FOLDS and the
+ * instruction line, the refuter's guide section, and the items to refute verbatim.
+ */
+export function refuterPrompt(input: StepBInput, items: ReviewItem[], guide?: string): string {
+  checkVersion(input);
+  if (!atLeast(input.version, REFUTER_FROM)) throw new Error(`the reviewer eval reproduces step C's refuter from ${REFUTER_FROM}, not ${input.version}`);
+  return dispatchVerbatim(input.profile, [
+    `INSTRUCTIONS: ${join(input.pluginDir, 'references', 'refuter-instructions.md')}`,
+    'PHASE: implement',
+    ...sharedInputs(input),
+    ...(guide ? ['MODEL GUIDE:', guide] : []),
+    'FINDINGS:',
+    ...items.map((i) => i.text),
+  ]);
+}
+
+/** The findings and risks of one LOOP-REVIEW-FINDINGS report, each with its lines verbatim. */
+export function parseItems(report: string): ReviewItem[] {
+  const items: ReviewItem[] = [];
+  let current: { id: string; lines: string[] } | undefined;
+  const close = () => {
+    if (!current) return;
+    const text = current.lines.join('\n');
+    items.push({ id: current.id, weight: /^\s*weight:\s*(\w+)/m.exec(text)?.[1], derived: /^\s*derived_from:\s*\S/m.test(text), text });
+  };
+  for (const line of report.split(/\r?\n/)) {
+    const id = /^\s*-\s*id:\s*([FR]\d+)\b/.exec(line);
+    if (id?.[1]) {
+      close();
+      current = { id: id[1], lines: [line] };
+    } else if (/^[a-z_]+:/.test(line) || line.trim() === '```') {
+      close();
+      current = undefined;
+    } else if (current) {
+      current.lines.push(line);
+    }
+  }
+  close();
+  return items;
+}
+
+/** The items step C sends to the refuter: every one but a `proof` finding (fixed) and a `derived_from` one (folded). */
+export const toRefute = (items: ReviewItem[]): ReviewItem[] => items.filter((i) => i.weight !== 'proof' && !i.derived);
+
+/** Each result of one LOOP-REFUTER-RESULTS report: its outcome and, when refuted, its reason. */
+export function parseRefuter(report: string): Map<string, { outcome: string; reason?: string }> {
+  const results = new Map<string, { outcome: string; reason?: string }>();
+  let id: string | undefined;
+  for (const line of report.split(/\r?\n/)) {
+    const start = /^\s*-\s*id:\s*([FR]\d+)\b/.exec(line);
+    if (start?.[1]) {
+      id = start[1];
+      results.set(id, { outcome: '' });
+      continue;
+    }
+    const field = /^\s*(outcome|reason):\s*([\w-]+)/.exec(line);
+    if (field?.[1] && field[2] && id) results.get(id)![field[1] as 'outcome' | 'reason'] = field[2];
+  }
+  return results;
+}
+
+/** An item still acts after step C unless the refuter refuted it with a reason that drops it. An item with no result counts as inconclusive. */
+export function survives(item: ReviewItem, refuted: Map<string, { outcome: string; reason?: string }>): boolean {
+  const r = refuted.get(item.id);
+  return !(r?.outcome === 'refuted' && r.reason !== undefined && DROPPING.has(r.reason));
 }
 
 /** Status and item counts of one LOOP-REVIEW-FINDINGS report. */
@@ -228,16 +363,20 @@ export function isCatch(judgeSaysCaught: boolean, run: Pick<ReviewRun, 'findings
   return judgeSaysCaught && run.findings + run.risks > 0;
 }
 
-/** Asks the pinned judge whether any finding or risk of the report names the planted defect. */
-async function judgeCatch(defect: string, report: string): Promise<{ caught: boolean; evidence: string; costUsd: number }> {
+/** Asks the pinned judge whether any finding or risk of the report names the planted defect, and which ones. */
+async function judgeCatch(defect: string, report: string): Promise<{ caught: boolean; evidence: string; ids: string[]; costUsd: number }> {
   const prompt = [
     'A code reviewer audited a change that contains exactly one planted defect.',
     `PLANTED DEFECT: ${defect}`,
     `REVIEWER REPORT:\n${report}`,
-    'Does any finding or risk in the report identify this defect — what is wrong, where, or its effect? A finding about something else in the same file does not count, and neither does evidence listed under a CLEAN status. Quote the decisive finding or risk (at most 300 characters), or say why none matches.',
+    'Does any finding or risk in the report identify this defect — what is wrong, where, or its effect? A finding about something else in the same file does not count, and neither does evidence listed under a CLEAN status. Quote the decisive finding or risk (at most 300 characters), or say why none matches. List the id (F1, R2, …) of every finding or risk that identifies it, or none.',
   ].join('\n\n');
-  const schema = { type: 'object', properties: { caught: { type: 'boolean' }, evidence: { type: 'string' } }, required: ['caught', 'evidence'] };
-  const { value, costUsd } = await askStructured<{ caught: boolean; evidence: string }>(JUDGE_MODEL, prompt, schema);
+  const schema = {
+    type: 'object',
+    properties: { caught: { type: 'boolean' }, evidence: { type: 'string' }, ids: { type: 'array', items: { type: 'string' } } },
+    required: ['caught', 'evidence', 'ids'],
+  };
+  const { value, costUsd } = await askStructured<{ caught: boolean; evidence: string; ids: string[] }>(JUDGE_MODEL, prompt, schema);
   return { ...value, costUsd };
 }
 
@@ -255,6 +394,8 @@ interface ReviewModeRequest {
   version: string;
   profile: RoleProfile;
   oracle: Oracle;
+  /** Pilot only: run just these cases. */
+  cases?: string[];
 }
 
 /** Runs every case `REVIEW_EVAL_RUNS` times, sequentially, and scores the mode. */
@@ -270,12 +411,13 @@ export async function runReviewMode(req: ReviewModeRequest): Promise<ModeResult>
   const failures: string[] = [];
   const evaluation: ReviewerEval = { version: REVIEW_EVAL_VERSION, cases: [] };
   const guide = reviewerGuide(req.pluginDir, req.profile.modelId);
+  const refuterGuide = reviewerGuide(req.pluginDir, req.profile.modelId, 'Refuter');
   let costUsd = 0;
   let judgeCostUsd = 0;
   let durationMs = 0;
   let aborted: string | undefined;
 
-  for (const c of readReviewCases()) {
+  for (const c of readReviewCases().filter((x) => !req.cases || req.cases.includes(x.name))) {
     const entry = { name: c.name, planted: c.defect !== null, runs: [] as ReviewRun[] };
     evaluation.cases.push(entry);
     for (let i = 1; i <= REVIEW_EVAL_RUNS && !aborted; i++) {
@@ -284,7 +426,7 @@ export async function runReviewMode(req: ReviewModeRequest): Promise<ModeResult>
       mkdirSync(dir, { recursive: true });
       console.log(`[review] ${c.name} ${i}/${REVIEW_EVAL_RUNS} in ${workspace}`);
       const gate = await runGate(workspace);
-      const prompt = stepBPrompt({
+      const input: StepBInput = {
         workspace,
         pluginDir: req.pluginDir,
         version: req.version,
@@ -294,10 +436,11 @@ export async function runReviewMode(req: ReviewModeRequest): Promise<ModeResult>
         gate,
         guide,
         runDiff: trees?.runDiff,
-      });
+        reviewRules: trees?.reviewRules,
+      };
       const before = await treeState(workspace);
       const transcriptPath = join(dir, 'transcript.jsonl');
-      const session = await runSession({ mode: 'review', cwd: workspace, prompt, pluginDir: req.pluginDir, profile: req.profile, oracle: req.oracle, transcriptPath });
+      const session = await runSession({ mode: 'review', cwd: workspace, prompt: stepBPrompt(input), pluginDir: req.pluginDir, profile: req.profile, oracle: req.oracle, transcriptPath });
       costUsd += session.costUsd;
       durationMs += session.durationMs;
       usage.push(session.modelUsage);
@@ -308,7 +451,7 @@ export async function runReviewMode(req: ReviewModeRequest): Promise<ModeResult>
       const run: ReviewRun = {
         ...parseReview(report),
         gateGreen: gate.test && gate.typecheck && gate.lint,
-        touched: (await treeState(workspace)) !== before,
+        touched: false,
         costUsd: session.costUsd,
         durationMs: session.durationMs,
         error: session.error,
@@ -317,12 +460,40 @@ export async function runReviewMode(req: ReviewModeRequest): Promise<ModeResult>
         try {
           const verdict = await judgeCatch(c.defect, report);
           judgeCostUsd += verdict.costUsd;
-          Object.assign(run, { caught: isCatch(verdict.caught, run), judgeEvidence: verdict.evidence });
+          Object.assign(run, { caught: isCatch(verdict.caught, run), judgeEvidence: verdict.evidence, judgeIds: verdict.ids });
         } catch (e) {
           failures.push(`${c.name}-${i}: judge: ${String(e).slice(0, 300)}`);
         }
       }
+      if (report && atLeast(req.version, REFUTER_FROM)) {
+        const items = parseItems(report);
+        const sent = toRefute(items);
+        let refuted = new Map<string, { outcome: string; reason?: string }>();
+        run.refuterReported = true;
+        if (sent.length) {
+          const refuterTranscript = join(dir, 'refuter-transcript.jsonl');
+          const refuter = await runSession({ mode: 'review', cwd: workspace, prompt: refuterPrompt(input, sent, refuterGuide), pluginDir: req.pluginDir, profile: req.profile, oracle: req.oracle, transcriptPath: refuterTranscript });
+          costUsd += refuter.costUsd;
+          durationMs += refuter.durationMs;
+          run.costUsd += refuter.costUsd;
+          run.durationMs += refuter.durationMs;
+          usage.push(refuter.modelUsage);
+          aborted = usageLimitError(refuter.error);
+          if (refuter.error) failures.push(`${c.name}-${i}: refuter: ${refuter.error}`);
+          const results = subagentReports(refuterTranscript, 'LOOP-REFUTER-RESULTS');
+          const result = results[results.length - 1];
+          run.refuterReported = result !== undefined;
+          if (result) refuted = parseRefuter(result);
+        }
+        if (run.refuterReported) {
+          const kept = new Set(items.filter((item) => survives(item, refuted)).map((item) => item.id));
+          run.surviving = kept.size;
+          if (run.caught !== undefined) run.caughtAfterRefuter = run.caught && (run.judgeIds ?? []).some((id) => kept.has(id));
+        }
+      }
+      run.touched = (await treeState(workspace)) !== before;
       entry.runs.push(run);
+      if (aborted) break;
       if (session.error) failures.push(`${c.name}-${i}: ${session.error}`);
     }
     if (aborted) break;
@@ -333,6 +504,7 @@ export async function runReviewMode(req: ReviewModeRequest): Promise<ModeResult>
   usage.forEach((u, i) => Object.entries(u).forEach(([model, mu]) => (merged[`${model}#${i}`] = mu)));
   const checks = {
     'every run returned a report': runs.length > 0 && runs.every((r) => r.reported),
+    ...(atLeast(req.version, REFUTER_FROM) ? { 'every refuter returned its results': runs.every((r) => !r.reported || r.refuterReported) } : {}),
     'every case had a green gate': runs.every((r) => r.gateGreen),
     'no run changed the repo': runs.every((r) => !r.touched),
     'no session error': runs.every((r) => !r.error),

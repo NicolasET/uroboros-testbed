@@ -4,7 +4,7 @@ import { query, type ModelUsage, type SDKUserMessage } from '@anthropic-ai/claud
 import { IDLE_CLOSE_MS, ROOT, SESSION_TIMEOUT_MS, WORKSPACES_ROOT, type Mode } from './config.ts';
 import type { RoleProfile } from './model-profile.ts';
 import type { AskedQuestion, Oracle } from './oracle.ts';
-import { outsidePath, type Fence } from './sandbox.ts';
+import { killsHarness, outsidePath, type Fence } from './sandbox.ts';
 
 export interface SessionOutcome {
   costUsd: number;
@@ -73,6 +73,10 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
           if (outside) {
             console.log(`[${req.mode}] denied ${toolName} outside the workspace: ${outside}`);
             return { behavior: 'deny', message: `${outside} is outside this project. Work only inside ${req.cwd}.` };
+          }
+          if (killsHarness(toolName, toolInput)) {
+            console.log(`[${req.mode}] denied ${toolName} killing processes by name`);
+            return { behavior: 'deny', message: 'Killing processes by name also kills other programs on this machine. Stop only what you started, by its PID, port or job.' };
           }
           if (toolName !== 'AskUserQuestion') return { behavior: 'allow', updatedInput: toolInput };
           const questions = (toolInput as { questions: AskedQuestion[] }).questions;

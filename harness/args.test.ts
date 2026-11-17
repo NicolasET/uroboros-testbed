@@ -11,4 +11,9 @@ describe('run arguments', () => {
     assert.deepEqual(parseArgs(['--modes', 'implement']).modes, ['implement']);
     assert.throws(() => parseArgs(['--modes', 'fast']), /unknown mode/);
   });
+
+  it('takes the eval cases of a pilot', () => {
+    assert.deepEqual(parseArgs(['--modes', 'review,verify', '--cases', 'rule, rank']).cases, ['rule', 'rank']);
+    assert.equal(parseArgs([]).cases, undefined);
+  });
 });

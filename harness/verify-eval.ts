@@ -44,6 +44,8 @@ export interface VerifyRun {
   reported: boolean;
   /** Defect cases only: a `fail` on an expected id. */
   caught?: boolean;
+  /** Cases with `expectProbe` only: a `property` probe (uroboros 0.31.0+) failed on a requirement the defect breaks. */
+  caughtByProperty?: boolean;
   strayFails: number;
   notRun: number;
   /** Probes reported `fail` (0.20.0+); on the clean copy each one is also a stray failure. */
@@ -121,7 +123,7 @@ export function promptFor(workspace: string, pluginDir: string, profile: RolePro
  * `fail` elsewhere is a stray failure; so is every probe `fail` on the clean copy. A probe `fail` on a defect case
  * that names another requirement is counted but not judged: the defect may well break that rule too.
  */
-export function scoreRun(report: string | undefined, c: VerifyCase): Pick<VerifyRun, 'reported' | 'caught' | 'strayFails' | 'notRun' | 'probeFails' | 'open'> {
+export function scoreRun(report: string | undefined, c: VerifyCase): Pick<VerifyRun, 'reported' | 'caught' | 'caughtByProperty' | 'strayFails' | 'notRun' | 'probeFails' | 'open'> {
   if (!report) return { reported: false, strayFails: 0, notRun: 0 };
   const results = parseVerifierResults(report);
   const probes = parseVerifierProbes(report);
@@ -133,6 +135,7 @@ export function scoreRun(report: string | undefined, c: VerifyCase): Pick<Verify
   return {
     reported: true,
     caught: hasDefect(c) ? fails.some((r) => hitsExpected(r.ids)) || probeFails.some((p) => namesExpected(p.source)) : undefined,
+    ...(c.expectProbe?.length ? { caughtByProperty: probeFails.some((p) => p.kind === 'property' && namesExpected(p.source)) } : {}),
     strayFails: fails.filter((r) => !hitsExpected(r.ids)).length + (hasDefect(c) ? 0 : probeFails.length),
     notRun: results.filter((r) => r.outcome === 'not-run').length,
     probeFails: probeFails.length,
@@ -146,6 +149,8 @@ interface VerifyModeRequest {
   version: string;
   profile: RoleProfile;
   oracle: Oracle;
+  /** Pilot only: run just these cases. */
+  cases?: string[];
 }
 
 /** Runs every case `VERIFY_EVAL_RUNS` times, sequentially, and scores the mode. */
@@ -165,7 +170,7 @@ export async function runVerifyMode(req: VerifyModeRequest): Promise<ModeResult>
   let durationMs = 0;
   let aborted: string | undefined;
 
-  for (const c of readCases()) {
+  for (const c of readCases().filter((x) => !req.cases || req.cases.includes(x.name))) {
     const entry = { name: c.name, expectFail: hasDefect(c), runs: [] as VerifyRun[] };
     evaluation.cases.push(entry);
     for (let i = 1; i <= VERIFY_EVAL_RUNS && !aborted; i++) {

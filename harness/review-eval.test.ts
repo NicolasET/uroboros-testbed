@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { FIXTURE_DIR } from './config.ts';
 import { exec, execOrThrow } from './exec.ts';
 import type { RoleProfile } from './model-profile.ts';
-import { buildReviewCase, changedFiles, copyFeature, isCatch, parseReview, prepareWorkspace, readReviewCases, reviewerGuide, stepBPrompt, type ReviewCase } from './review-eval.ts';
+import { buildReviewCase, changedFiles, copyFeature, copyRules, isCatch, parseItems, parseRefuter, parseReview, prepareWorkspace, readReviewCases, refuterPrompt, reviewerGuide, stepBPrompt, survives, toRefute, type ReviewCase } from './review-eval.ts';
 import { parseTap, runGate, runHiddenTests, type HiddenTestsResult } from './verify.ts';
 
 const caseNamed = (name: string) => readReviewCases().find((c) => c.name === name)!;
@@ -16,6 +16,7 @@ function caseWorkspace(c: ReviewCase): string {
   const dir = mkdtempSync(join(tmpdir(), `uro-testbed-review-${c.name}-`));
   cpSync(FIXTURE_DIR, dir, { recursive: true });
   copyFeature(dir);
+  copyRules(dir, c);
   buildReviewCase(dir, c);
   return dir;
 }
@@ -25,6 +26,7 @@ async function gitCaseWorkspace(c: ReviewCase): Promise<string> {
   const dir = mkdtempSync(join(tmpdir(), `uro-testbed-review-git-${c.name}-`));
   cpSync(FIXTURE_DIR, dir, { recursive: true });
   copyFeature(dir);
+  copyRules(dir, c);
   await execOrThrow('git', ['init', '--quiet', '--initial-branch', 'main'], dir);
   await execOrThrow('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'add', '-A'], dir);
   await execOrThrow('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '--quiet', '-m', 'base'], dir);
@@ -69,6 +71,20 @@ describe('reviewer eval cases', () => {
     const extra = caseWorkspace(caseNamed('extra'));
     assert.match(read(extra, 'src/gateway.ts'), /'POST \/listings\/:id\/toggle'/);
     assert.match(read(extra, 'src/app.ts'), /parts\[2\] === 'toggle'/);
+  });
+
+  // v3: the rule case breaks only the project's REVIEW.md; its clean twin keeps the same rules and complies.
+  it('rule: setPaused loses only its route comment, which the rule asks for; every other handler keeps one', () => {
+    const dir = caseWorkspace(caseNamed('rule'));
+    const listings = read(dir, 'src/listings.ts');
+    assert.match(listings, /\n\nexport function setPaused\(/);
+    assert.equal(listings, read(join(FIXTURE_DIR, '..', 'harness', 'reference'), 'src/listings.ts').replace(/\/\*\* POST \/listings\/:id\/pause[^\n]*\n/, ''));
+    assert.match(read(dir, 'REVIEW.md'), /Handlers name their route/);
+    const clean = caseWorkspace(caseNamed('rule-clean'));
+    for (const file of ['src/listings.ts', 'src/orders.ts']) {
+      const text = read(clean, file);
+      for (const m of text.matchAll(/\n(?:\/\*\*([^\n]*)\*\/\n)?export (?:async )?function/g)) assert.match(m[1] ?? '', /^ (GET|POST) \//, `${file}: ${m[0]}`);
+    }
   });
 
   // v2: each defect leaves its trace only where one release's reviewer looks, so each one is proved by behavior.
@@ -125,13 +141,42 @@ describe('reviewer eval step-B prompt', () => {
     assert.throws(() => stepBPrompt({ ...input, version: '0.15.0' }));
     assert.throws(() => stepBPrompt({ ...input, version: '0.17.0' }), /RUN_DIFF/);
     assert.match(stepBPrompt({ ...input, version: '0.17.0', runDiff: '/x/.git/uroboros/run.diff' }), /\nRUN_DIFF: \/x\/\.git\/uroboros\/run\.diff\n/);
-    assert.throws(() => stepBPrompt({ ...input, version: '0.31.0', runDiff: 'd' }));
+    assert.throws(() => stepBPrompt({ ...input, version: '0.32.0', runDiff: 'd' }));
     assert.match(stepBPrompt({ ...input, version: '0.30.0', runDiff: 'd' }), /\nRUN_DIFF: d\n/);
+    assert.doesNotMatch(stepBPrompt({ ...input, version: '0.30.0', runDiff: 'd', reviewRules: 'r' }), /REVIEW_RULES/);
+    assert.match(stepBPrompt({ ...input, version: '0.31.0', runDiff: 'd', reviewRules: 'r' }), /\nGATE RESULT: pass[^\n]*\nREVIEW_RULES: r\n/);
+    assert.doesNotMatch(stepBPrompt({ ...input, version: '0.31.0', runDiff: 'd' }), /REVIEW_RULES/);
     const prompt = stepBPrompt({ ...input, version: '0.16.2', guide: 'GUIDE TEXT' });
     assert.match(prompt, /subagent_type `uroboros:uroboros-reviewer-medium`, model `opus`/);
     assert.match(prompt, /PHASE: implement\nROUND: 1\n/);
     assert.match(prompt, /GATE RESULT: pass/);
     assert.match(prompt, /MODEL GUIDE:\nGUIDE TEXT/);
+  });
+
+  it('from 0.31.0, the state file records the judging sources and the review rules, and the rules are read from the base', async () => {
+    const { workspace, trees } = await prepareWorkspace(caseNamed('rule'), '0.31.0');
+    const state = read(workspace, 'specs/001-pause-listing/loop-state.md');
+    assert.match(state, /\n- JUDGING SOURCES: specs\/ \.uroboros\/ /);
+    assert.match(state, /\n- REVIEW RULES: REVIEW\.md\n/);
+    assert.ok(trees?.reviewRules);
+    assert.match(trees.reviewRules.replace(/\\/g, '/'), /\.git\/uroboros\/review-rules\.md$/);
+    assert.match(readFileSync(trees.reviewRules, 'utf8'), /^## REVIEW\.md\n\n# Review rules\n/);
+    assert.ok(!(await changedFiles(workspace, '0.31.0', trees)).includes('REVIEW.md'));
+    const clean = await prepareWorkspace(caseNamed('clean'), '0.31.0');
+    assert.equal(clean.trees?.reviewRules, undefined);
+    assert.match(read(clean.workspace, 'specs/001-pause-listing/loop-state.md'), /\n- REVIEW RULES: none\n/);
+    assert.doesNotMatch(read((await prepareWorkspace(caseNamed('rule'), '0.30.0')).workspace, 'specs/001-pause-listing/loop-state.md'), /JUDGING SOURCES/);
+  });
+
+  it("step C's refuter gets step B's inputs but ROUND and the instruction line, and the items verbatim, from 0.29.0", () => {
+    const input = { workspace: 'w', pluginDir: 'p', profile, changed: ['a'], diffStat: 's', gate, runDiff: 'd', reviewRules: 'r' };
+    const items = [{ id: 'F2', weight: 'decision', derived: false, text: '  - id: F2\n    weight: decision' }];
+    assert.throws(() => refuterPrompt({ ...input, version: '0.28.0' }, items));
+    const prompt = refuterPrompt({ ...input, version: '0.31.0' }, items, 'REFUTER GUIDE');
+    assert.match(prompt, /subagent_type `uroboros:uroboros-reviewer-medium`/);
+    assert.match(prompt, /refuter-instructions\.md\nPHASE: implement\nRUN_MODE: default\n/);
+    assert.doesNotMatch(prompt, /ROUND:|Read the state file first/);
+    assert.match(prompt, /\nREVIEW_RULES: r\nMODEL GUIDE:\nREFUTER GUIDE\nFINDINGS:\n {2}- id: F2\n {4}weight: decision\n>>>$/);
   });
 
   it("pastes the Reviewer section of the guide written for the exact model, and no other", () => {
@@ -154,6 +199,39 @@ describe('reviewer eval scoring', () => {
 
   it('no report scores as not reported', () => {
     assert.deepEqual(parseReview(undefined), { reported: false, findings: 0, risks: 0 });
+  });
+
+  const findings = [
+    'LOOP-REVIEW-FINDINGS',
+    'phase: implement',
+    'status: FINDINGS',
+    'findings:',
+    '  - id: F1',
+    '    weight: proof',
+    '  - id: F2',
+    '    weight: decision',
+    '    derived_from: D3 — "only admins"',
+    '  - id: F3',
+    '    weight: decision',
+    'risks:',
+    '  - id: R1',
+    '    kind: defect',
+    'evidence:',
+    '  - claim: x',
+  ].join('\n');
+
+  it('step C sends the refuter every item but proof and derived findings, verbatim', () => {
+    const items = parseItems(findings);
+    assert.deepEqual(items.map((i) => [i.id, i.weight, i.derived]), [['F1', 'proof', false], ['F2', 'decision', true], ['F3', 'decision', false], ['R1', undefined, false]]);
+    assert.deepEqual(toRefute(items).map((i) => i.id), ['F3', 'R1']);
+    assert.equal(items[3]!.text, '  - id: R1\n    kind: defect');
+  });
+
+  it('only a refutation that drops the item loses it; a decided or discoverable one is folded', () => {
+    const results = parseRefuter(['LOOP-REFUTER-RESULTS', 'results:', '  - id: F3', '    outcome: refuted', '    reason: no-outcome', '  - id: R1', '    outcome: refuted', '    reason: decided', '    proof: x'].join('\n'));
+    const items = parseItems(findings);
+    assert.deepEqual(items.filter((i) => survives(i, results)).map((i) => i.id), ['F1', 'F2', 'R1']);
+    assert.ok(survives({ id: 'F9', derived: false, text: '' }, results));
   });
 
   it('a report with no finding or risk catches nothing, whatever the judge says', () => {

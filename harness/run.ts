@@ -152,7 +152,8 @@ async function main(): Promise<void> {
   const { dir: _dir, ...source } = uroboros;
   const run: RunResult = { label: uroboros.label, scenarioVersion: SCENARIO_VERSION, verifyEvalVersion: VERIFY_EVAL_VERSION, reviewEvalVersion: REVIEW_EVAL_VERSION, implementEvalVersion: IMPLEMENT_EVAL_VERSION, uroboros: source, profile, sdkVersion, startedAt: new Date().toISOString(), modes: [] };
 
-  const resultDir = join(RESULTS_DIR, uroboros.label);
+  // A pilot (--cases) measures part of an eval: it never lands in results/.
+  const resultDir = args.cases ? join(runDir, 'pilot-result') : join(RESULTS_DIR, uroboros.label);
   mkdirSync(resultDir, { recursive: true });
   const metricsPath = join(resultDir, 'metrics.json');
   // A partial run (--modes) replaces only the modes it ran. Earlier modes of the same version stay when they measured the same
@@ -164,9 +165,9 @@ async function main(): Promise<void> {
   for (const mode of args.modes) {
     const result =
       mode === 'verify'
-        ? await runVerifyMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle })
+        ? await runVerifyMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle, cases: args.cases })
         : mode === 'review'
-          ? await runReviewMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle })
+          ? await runReviewMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle, cases: args.cases })
           : mode === 'implement'
             ? await runImplementMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracleLog })
             : await runMode(mode, runDir, uroboros.dir, profile, oracle, oracleLog);

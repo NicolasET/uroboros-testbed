@@ -62,6 +62,32 @@ async function probe(workspace: string): Promise<Observed> {
   }
 }
 
+/** On the running server: the rankScore a seeded listing and a newly published one (rank 0) keep across a pause (FR-004). */
+async function probeRank(workspace: string): Promise<{ seeded: number[]; created: number[] }> {
+  const port = await freePort();
+  const { NODE_TEST_CONTEXT: _inherited, ...env } = process.env;
+  const server = spawn(process.execPath, ['--import', 'tsx', 'src/server.ts'], { cwd: workspace, env: { ...env, PORT: String(port) }, stdio: ['ignore', 'pipe', 'pipe'] });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('server did not start within 20 s')), 20_000);
+      server.stdout.on('data', (chunk: Buffer) => chunk.toString().includes('listings-api on') && (clearTimeout(timer), resolve()));
+      server.on('exit', (code) => reject(new Error(`server exited with ${code}`)));
+    });
+    const base = `http://127.0.0.1:${port}`;
+    const rank = async (id: string) => ((await (await fetch(`${base}/listings/${id}`)).json()) as { rankScore: number }).rankScore;
+    const pauseAndRank = async (id: string) => {
+      const before = await rank(id);
+      await fetch(`${base}/listings/${id}/pause`, { method: 'POST', headers: { 'x-user-id': OWNER } });
+      return [before, await rank(id)];
+    };
+    const published = await fetch(`${base}/listings`, { method: 'POST', headers: { 'x-user-id': OWNER, 'content-type': 'application/json' }, body: JSON.stringify({ title: 'Bookshelf', priceCents: 5000 }) });
+    const { id } = (await published.json()) as { id: string };
+    return { seeded: await pauseAndRank('l_lamp'), created: await pauseAndRank(id) };
+  } finally {
+    server.kill();
+  }
+}
+
 const caseNamed = (name: string) => readCases().find((c) => c.name === name)!;
 
 describe('verifier eval cases', () => {
@@ -81,6 +107,15 @@ describe('verifier eval cases', () => {
   it('edge: the running server refuses an unknown id with 403, not FR-006\'s 404; every scenario holds', async () => {
     const observed = await probe(caseWorkspace(caseNamed('edge')));
     assert.deepEqual(observed, { pauseStatus: 200, pausedById: 'paused', lampInSearchAfterPause: false, unknownPause: '403 not_listing_owner' });
+  });
+
+  it('rank: the running server keeps a seeded rank but lifts a new listing\'s 0 on pause; every scenario holds', async () => {
+    assert.deepEqual(await probe(caseWorkspace(caseNamed('rank'))), { pauseStatus: 200, pausedById: 'paused', lampInSearchAfterPause: false, unknownPause: '404 listing_not_found' });
+    assert.deepEqual(await probeRank(caseWorkspace(caseNamed('rank'))), { seeded: [12, 12], created: [0, 1] });
+  });
+
+  it('clean: a pause keeps the rank of a seeded and of a new listing', async () => {
+    assert.deepEqual(await probeRank(caseWorkspace(caseNamed('clean'))), { seeded: [12, 12], created: [0, 0] });
   });
 
   it('route: the running server does not publish pause', async () => {
@@ -113,8 +148,13 @@ describe('verifier eval scoring', () => {
   const probes = (lines: string[]) => report(['  - id: QS-1', '    outcome: pass', 'probes:', ...lines, 'open:', '  - id: P9', '    behavior: 400', 'observed:', '  - none']);
 
   it('a probe fail naming the broken requirement is a catch; probes never count as scenarios', () => {
-    const text = probes(['  - id: P1', '    source: FR-006 — spec.md:38', '    outcome: fail', '  - id: P2', '    source: FR-001', '    outcome: pass']);
-    assert.deepEqual(scoreRun(text, caseNamed('edge')), { reported: true, caught: true, strayFails: 0, notRun: 0, probeFails: 1, open: 1 });
+    const text = probes(['  - id: P1', '    source: FR-006 — spec.md:38', '    kind: edge', '    outcome: fail', '  - id: P2', '    source: FR-001', '    outcome: pass']);
+    assert.deepEqual(scoreRun(text, caseNamed('edge')), { reported: true, caught: true, caughtByProperty: false, strayFails: 0, notRun: 0, probeFails: 1, open: 1 });
+  });
+
+  it('a property probe fail on the broken requirement is also counted as caught by a property', () => {
+    const text = probes(['  - id: P1', '    source: FR-004 — spec.md:36', '    kind: property', '    outcome: fail']);
+    assert.deepEqual(scoreRun(text, caseNamed('rank')), { reported: true, caught: true, caughtByProperty: true, strayFails: 0, notRun: 0, probeFails: 1, open: 1 });
   });
 
   it('a probe fail on another requirement is no catch', () => {

@@ -29,13 +29,13 @@ export const EARLIER_FEATURE_MODES: readonly Mode[] = ['default', 'auto', 'goal'
 export const EARLIER_CHANGED = ['D1', 'D2'] as const;
 export const EARLIER_KEPT = ['D3', 'D5'] as const;
 
-/** The verifier eval (`verify` mode, `scenario/verify/`) is versioned apart: it changes nothing the other modes measure. Bump it whenever `scenario/verify/`, its scoring or the fixture (which its workspaces copy) changes; the `verify` row is compared only within one eval version. v2: FR-006 (an unknown listing id is refused with 404) and the `edge` case, whose defect breaks it where no scenario looks; probe failures are scored (uroboros 0.20.0+). */
-export const VERIFY_EVAL_VERSION = 2;
+/** The verifier eval (`verify` mode, `scenario/verify/`) is versioned apart: it changes nothing the other modes measure. Bump it whenever `scenario/verify/`, its scoring or the fixture (which its workspaces copy) changes; the `verify` row is compared only within one eval version. v2: FR-006 (an unknown listing id is refused with 404) and the `edge` case, whose defect breaks it where no scenario looks; probe failures are scored (uroboros 0.20.0+). v3: the `rank` case, whose defect breaks FR-004 (pause and resume never change `rankScore`) only for a listing published with rank 0 — every seeded listing is ranked, so no scenario and no single-listing probe of a seed shows it; a rule over every listing does (property probes, uroboros 0.31.0). */
+export const VERIFY_EVAL_VERSION = 3;
 /** Runs per verifier eval case: the verifier is not deterministic, so each case reports a rate. */
 export const VERIFY_EVAL_RUNS = 3;
 
-/** The reviewer eval (`review` mode, `scenario/review/`) is versioned apart, like the verifier eval. Bump it whenever `scenario/review/`, its prompts, its scoring or the fixture change; the `review` row is compared only within one eval version. v2: two more cases meant to show only in the run's diff, `deleted` (a removed check and its removed test) and `ranking` (an unrequested change to shared code) — 0.16.1 still caught them, from its diff stat and changed-file list — and sessions that cannot read outside their workspace (`harness/sandbox.ts`). */
-export const REVIEW_EVAL_VERSION = 2;
+/** The reviewer eval (`review` mode, `scenario/review/`) is versioned apart, like the verifier eval. Bump it whenever `scenario/review/`, its prompts, its scoring or the fixture change; the `review` row is compared only within one eval version. v2: two more cases meant to show only in the run's diff, `deleted` (a removed check and its removed test) and `ranking` (an unrequested change to shared code) — 0.16.1 still caught them, from its diff stat and changed-file list — and sessions that cannot read outside their workspace (`harness/sandbox.ts`). v3: from uroboros 0.29.0 each report also goes through step C's refuter and is scored after it (an item refuted as unreachable, no-outcome or not-this-run is lost; the judge names the items that identify the defect); the `rule` case, whose defect breaks only the project's `REVIEW.md`, and its compliant twin `rule-clean`. */
+export const REVIEW_EVAL_VERSION = 3;
 /** Runs per reviewer eval case. */
 export const REVIEW_EVAL_RUNS = 3;
 

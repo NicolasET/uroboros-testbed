@@ -47,3 +47,21 @@ export function outsidePath(toolName: string, input: Record<string, unknown>, fe
   const paths = (PATH_ARGS[toolName] ?? []).map((key) => input[key]).filter((v): v is string => typeof v === 'string' && v.length > 0);
   return [...paths.map((p) => resolve(fence.cwd, p)), ...(blockedPath ? [blockedPath] : [])].find((p) => !permitted(p));
 }
+
+/** Kills by a process name the harness runs under (Node, npm, npx, tsx): they take the harness down with the session. */
+const KILL_BY_NAME = [
+  /\btaskkill\b[^;|&]*?[/-]im\s+["']?(?:node|npm|npx|tsx)(?:\.exe)?\b/i,
+  /\b(?:stop-process|spps|kill)\b[^;|&]*?-name\s+["']?(?:node|npm|npx|tsx)(?:\.exe)?\b/i,
+  /\b(?:pkill|killall)\b(?:\s+-\S+)*\s+["']?(?:node|npm|npx|tsx)(?:\.exe)?\b/i,
+];
+
+/**
+ * Whether a shell command kills processes by a name the harness runs under (`taskkill /IM node.exe`, `pkill node`,
+ * `Stop-Process -Name node`). 0.30.1's verifier ran `taskkill //F //IM node.exe` to restart its server and killed
+ * the testbed run mid-eval; a session must stop what it started by its PID, port or job instead.
+ */
+export function killsHarness(toolName: string, input: Record<string, unknown>): boolean {
+  if (!SHELLS.has(toolName)) return false;
+  const command = String(input.command ?? '');
+  return KILL_BY_NAME.some((pattern) => pattern.test(command));
+}

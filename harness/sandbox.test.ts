@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { outsidePath, shellPaths, type Fence } from './sandbox.ts';
+import { killsHarness, outsidePath, shellPaths, type Fence } from './sandbox.ts';
 
 const work = 'C:/uro-testbed-work';
 const workspace = join(work, 'review-abc');
@@ -41,5 +41,28 @@ describe('sandbox fence', () => {
 
   it('reads Windows, Git Bash and POSIX paths out of a command', () => {
     assert.deepEqual(shellPaths('cat C:\\a\\b.txt /c/d/e.txt /tmp/f "x"'), ['C:\\a\\b.txt', 'c:/d/e.txt', '/tmp/f']);
+  });
+});
+
+describe('killing the harness by process name', () => {
+  const bash = (command: string) => killsHarness('Bash', { command });
+  it('denies what kills every Node process: the 0.30.1 verifier\'s taskkill, pkill, Stop-Process', () => {
+    assert.ok(bash('taskkill //F //IM node.exe >/dev/null 2>&1; sleep 1; (PORT=3000 npm start &)'));
+    assert.ok(bash('taskkill /F /IM node.exe'));
+    assert.ok(bash('taskkill /im "node.exe" /t'));
+    assert.ok(bash('pkill node'));
+    assert.ok(bash('pkill -f -9 tsx'));
+    assert.ok(bash('killall node'));
+    assert.ok(killsHarness('PowerShell', { command: 'Stop-Process -Name node -Force' }));
+    assert.ok(killsHarness('PowerShell', { command: 'Get-Process | Stop-Process -Force -Name "node"' }));
+  });
+  it('lets a session stop what it started, and other tools pass', () => {
+    assert.equal(bash('kill $SERVER_PID'), false);
+    assert.equal(bash('taskkill /F /PID 4120'), false);
+    assert.equal(bash('kill %1; npx kill-port 3000'), false);
+    assert.equal(bash('pkill -f "src/server.ts"'), false);
+    assert.equal(bash('node --version'), false);
+    assert.equal(killsHarness('PowerShell', { command: 'Stop-Process -Id $server.Id' }), false);
+    assert.equal(killsHarness('Read', { file_path: 'taskkill /IM node.exe' }), false);
   });
 });

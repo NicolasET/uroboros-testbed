@@ -18,9 +18,11 @@ const ROWS: Row[] = [
   ['runtime tests (real server)', (r) => (r.runtime ? `${r.runtime.passed}/${r.runtime.total}` : '-')],
   ['verifier (pass/fail/not-run per round)', (r) => (r.verifier ? `${r.verifier.rounds.map((v) => `${v.pass}/${v.fail}/${v.notRun}`).join(' → ')}${r.verifier.caught ? ' — caught a failure, fixed' : ''}` : '-')],
   ['verifier detection (caught / runs)', (r) => (r.verifierEval ? r.verifierEval.cases.filter((c) => c.expectFail).map((c) => `${c.name} ${c.runs.filter((x) => x.caught).length}/${c.runs.length}`).join(' · ') : '-')],
+  ['verifier detection by a property probe (caught / runs)', (r) => (r.verifierEval?.cases.some((c) => c.runs.some((x) => x.caughtByProperty !== undefined)) ? r.verifierEval.cases.filter((c) => c.runs.some((x) => x.caughtByProperty !== undefined)).map((c) => `${c.name} ${c.runs.filter((x) => x.caughtByProperty).length}/${c.runs.length}`).join(' · ') : '-')],
   ['verifier false failures', (r) => (r.verifierEval ? falseFailures(r) : '-')],
   ['reviewer detection (caught / runs)', (r) => (r.reviewerEval ? r.reviewerEval.cases.filter((c) => c.planted).map((c) => `${c.name} ${c.runs.filter((x) => x.caught).length}/${c.runs.length}`).join(' · ') : '-')],
-  ['reviewer on the clean copy', (r) => (r.reviewerEval ? reviewerOnClean(r) : '-')],
+  ['reviewer detection after the refuter (caught / runs)', (r) => (r.reviewerEval?.cases.some((c) => c.runs.some((x) => x.caughtAfterRefuter !== undefined)) ? r.reviewerEval.cases.filter((c) => c.planted).map((c) => `${c.name} ${c.runs.filter((x) => x.caughtAfterRefuter).length}/${c.runs.length}`).join(' · ') : '-')],
+  ['reviewer on the clean copies', (r) => (r.reviewerEval ? reviewerOnClean(r) : '-')],
   ['gate (test/typecheck/lint)', (r) => (r.gate ? [r.gate.test, r.gate.typecheck, r.gate.lint].map((ok) => (ok ? '✓' : '✗')).join(' ') : '-')],
   ['questions asked', (r) => String(r.questionsAsked)],
   ['cost (USD, estimate)', (r) => r.costUsd.toFixed(2)],
@@ -41,11 +43,16 @@ function falseFailures(r: ModeResult): string {
   return `clean ${clean.filter((x) => x.strayFails > 0).length}/${clean.length} runs · stray fails ${stray} · not-run ${notRun}`;
 }
 
-/** Clean-copy runs that returned CLEAN, and the findings and risks the others reported. */
+/** Per clean copy: runs that returned CLEAN, the findings and risks the others reported, and (from 0.29.0) the items left after the refuter. */
 function reviewerOnClean(r: ModeResult): string {
-  const clean = (r.reviewerEval?.cases ?? []).filter((c) => !c.planted).flatMap((c) => c.runs);
-  const sum = (pick: (x: (typeof clean)[number]) => number) => clean.reduce((n, x) => n + pick(x), 0);
-  return `CLEAN ${clean.filter((x) => x.status === 'CLEAN').length}/${clean.length} runs · findings ${sum((x) => x.findings)} · risks ${sum((x) => x.risks)}`;
+  return (r.reviewerEval?.cases ?? [])
+    .filter((c) => !c.planted)
+    .map((c) => {
+      const sum = (pick: (x: (typeof c.runs)[number]) => number) => c.runs.reduce((n, x) => n + pick(x), 0);
+      const after = c.runs.some((x) => x.surviving !== undefined) ? ` · after the refuter ${sum((x) => x.surviving ?? 0)}` : '';
+      return `${c.name}: CLEAN ${c.runs.filter((x) => x.status === 'CLEAN').length}/${c.runs.length} runs · findings ${sum((x) => x.findings)} · risks ${sum((x) => x.risks)}${after}`;
+    })
+    .join(' · ');
 }
 
 export interface PreviousMode {
@@ -129,7 +136,7 @@ function notProven(run: RunResult): string[] {
     'Answers from a real user: the oracle answers from `truth.md` alone and says "No sé" to anything it does not settle.',
     'Other projects: one fixture (a Node/TypeScript API on spec-kit 1.1.0) and one feature idea.',
   ];
-  if (measured.has('review')) items.push("The refuter's effect: the reviewer eval scores the reviewer's report before the refuter, which only a full pipeline runs.");
+  if (measured.has('review')) items.push("What the orchestrator does after the refuter: the reviewer eval scores the reviewer's report and, from uroboros 0.29.0, which of its items survive the refuter, but it asks no question and folds nothing.");
   if (measured.has('implement')) items.push('Implement speed on other features: the implement eval resumes one fixed feature whose three user stories share no file, the case parallel implementers are built for; a `tasks.md` whose stories share a file runs one implementer, as the pipeline modes show.');
   // The implement eval runs only when asked for, so a full run does not list it.
   const unmeasured = DEFAULT_MODES.filter((m) => !measured.has(m));

@@ -24,6 +24,8 @@ export interface VerifierProbe {
   /** The requirement or edge case the probe was derived from, with its location (`FR-006 — spec.md:41`). */
   source: string;
   outcome: string;
+  /** `positive | negative | edge | invariant | property` (`property` from uroboros 0.31.0). */
+  kind?: string;
 }
 
 const SCENARIO_ID = /\b(?:QS-\d+|US\d+\/AC\d+|AC-\d+)\b/g;
@@ -58,8 +60,8 @@ export function parseVerifierProbes(text: string): VerifierProbe[] {
       probes.push(current);
       continue;
     }
-    const field = /^\s*(source|outcome):\s*(.+)$/.exec(line);
-    if (field?.[1] && field[2] && current) current[field[1] as 'source' | 'outcome'] = field[2].trim();
+    const field = /^\s*(source|outcome|kind):\s*(.+)$/.exec(line);
+    if (field?.[1] && field[2] && current) current[field[1] as 'source' | 'outcome' | 'kind'] = field[2].trim();
   }
   return probes;
 }
