@@ -58,6 +58,7 @@ describe('implementer timeline', () => {
   });
 
   it('falls back on the tool result when no notification reports a duration', () => {
+    assert.equal(readImplementerTimeline(transcript([call('c0', 0), started('t0', 'c0', 'uroboros:uroboros-implementer'), result('c0', 30)])).dispatches, 1);
     const timeline = readImplementerTimeline(transcript([call('c1', 0), started('t1', 'c1', 'uroboros:uroboros-implementer-high'), result('c1', 90)]));
     assert.deepEqual(timeline.spans.map((s) => s.end - s.start), [90_000]);
   });

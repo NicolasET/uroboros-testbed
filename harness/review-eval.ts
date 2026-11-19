@@ -19,7 +19,7 @@ import { snapshot, writeRunDiff } from './snapshot.ts';
 import { askStructured } from './structured.ts';
 import { subagentReports } from './transcript.ts';
 import { runGate, type GateResult } from './verify.ts';
-import { atLeast } from './versions.ts';
+import { agentCall, atLeast } from './versions.ts';
 import { createWorkspace } from './workspace.ts';
 
 export const REVIEW_DIR = join(SCENARIO_DIR, 'review');
@@ -27,7 +27,10 @@ const FEATURE_PATH = join('specs', '001-pause-listing');
 /** The first uroboros version whose step-B prompt this eval reproduces (ROUND, FOLDS, STANDING_DECISIONS, model guides). */
 export const FIRST_VERSION = '0.16.0';
 /** The first version whose step-B protocol this eval does not reproduce yet: extend `stepBPrompt` before measuring it. 0.29.0 passes `EARLIER_FEATURES` in place of `STANDING_DECISIONS`, only when the project has earlier features, and this eval's workspace has none, so its prompt is unchanged. 0.30.0 leaves step B as it was: its parts protocol starts other sessions and does not touch a review. 0.31.0 adds `REVIEW_RULES` and the state file's `JUDGING SOURCES` and `REVIEW RULES` (`JUDGING_FROM`). */
-export const UNKNOWN_FROM = '0.32.0';
+export const UNKNOWN_FROM = '0.33.0';
+/** From this version the state file carries what the implementer declared as not asked for (`### Unrequested (declared)`), and a dispatch names one agent per role with the effort on the call (`agentCall`); step B's inputs are unchanged. */
+export const UNREQUESTED_FROM = '0.32.0';
+const UNREQUESTED = '\n### Unrequested (declared)\n\n- round 1: none\n';
 /** From this version the state file records `JUDGING SOURCES` and `REVIEW RULES`, and step B passes `REVIEW_RULES` when the project has a `REVIEW.md`. */
 export const JUDGING_FROM = '0.31.0';
 const JUDGING_SOURCES = "- JUDGING SOURCES: specs/ .uroboros/ .specify/ '.claude/skills/speckit-*' ':(glob)**/REVIEW.md' ':(glob)**/CLAUDE.md' ':(glob)**/AGENTS.md' ':(exclude).uroboros/active-run.json'";
@@ -156,7 +159,7 @@ export async function prepareWorkspace(c: ReviewCase, version: string): Promise<
 ### Gate touched
 
 - round 1: none
-${atLeast(version, SURFACES_FROM) ? `\n### Shared code touched\n\n- round 1: none\n\n${SURFACES}\n` : ''}${atLeast(version, RED_FIRST_FROM) ? RED_FIRST : ''}${atLeast(version, WAVES_FROM) ? WAVES : ''}`,
+${atLeast(version, SURFACES_FROM) ? `\n### Shared code touched\n\n- round 1: none\n\n${SURFACES}\n` : ''}${atLeast(version, RED_FIRST_FROM) ? RED_FIRST : ''}${atLeast(version, WAVES_FROM) ? WAVES : ''}${atLeast(version, UNREQUESTED_FROM) ? UNREQUESTED : ''}`,
   );
   if (!atLeast(version, JUDGING_FROM)) return { workspace, trees: { base, round, runDiff } };
   const reviewRules = c.rules ? await writeReviewRules(workspace, base) : undefined;
@@ -245,10 +248,10 @@ function sharedInputs(input: StepBInput): string[] {
   ];
 }
 
-/** Wraps a dispatch so the main thread runs it on the reviewer variant of the chosen effort and replies with the report verbatim. */
-function dispatchVerbatim(profile: RoleProfile, dispatch: string[]): string {
+/** Wraps a dispatch so the main thread runs it on the reviewer agent with the chosen model and effort and replies with the report verbatim. */
+function dispatchVerbatim(profile: RoleProfile, version: string, dispatch: string[]): string {
   return [
-    `Use the Agent tool once: subagent_type \`uroboros:uroboros-reviewer-${profile.effort}\`, model \`${profile.alias}\`, and as its prompt exactly the text between the markers. Wait for its report, then reply with the report verbatim and nothing else. Do not run, read or change anything yourself.`,
+    `Use the Agent tool once: ${agentCall('reviewer', profile, version)}, and as its prompt exactly the text between the markers. Wait for its report, then reply with the report verbatim and nothing else. Do not run, read or change anything yourself.`,
     '<<<',
     dispatch.join('\n'),
     '>>>',
@@ -265,7 +268,7 @@ function checkVersion(input: StepBInput): void {
 /** The orchestrator's implement step-B prompt for the measured version, handed to the main thread to dispatch verbatim. */
 export function stepBPrompt(input: StepBInput): string {
   checkVersion(input);
-  return dispatchVerbatim(input.profile, [
+  return dispatchVerbatim(input.profile, input.version, [
     `INSTRUCTIONS: ${join(input.pluginDir, 'references', 'reviewer-instructions.md')}`,
     'PHASE: implement',
     'ROUND: 1',
@@ -283,7 +286,7 @@ export function stepBPrompt(input: StepBInput): string {
 export function refuterPrompt(input: StepBInput, items: ReviewItem[], guide?: string): string {
   checkVersion(input);
   if (!atLeast(input.version, REFUTER_FROM)) throw new Error(`the reviewer eval reproduces step C's refuter from ${REFUTER_FROM}, not ${input.version}`);
-  return dispatchVerbatim(input.profile, [
+  return dispatchVerbatim(input.profile, input.version, [
     `INSTRUCTIONS: ${join(input.pluginDir, 'references', 'refuter-instructions.md')}`,
     'PHASE: implement',
     ...sharedInputs(input),

@@ -1,4 +1,4 @@
-// When each `uroboros-implementer-*` subagent of a session ran, read from its transcript. A subagent's `task_started`
+// When each `uroboros-implementer` subagent of a session ran (`uroboros-implementer-<effort>` before uroboros 0.32.0), read from its transcript. A subagent's `task_started`
 // names its type and the Agent call that launched it (`tool_use_id`); `system` lines carry no timestamp, so the start is
 // the timestamp of the assistant message holding that call, and the end is the start plus the `duration_ms` its
 // `task_notification` reports — or, without one, the timestamp of the call's tool result. The duration comes first:
@@ -34,7 +34,7 @@ export interface ImplementerSummary {
   implementMs?: number;
 }
 
-const IMPLEMENTER = /uroboros-implementer-/;
+const IMPLEMENTER = /uroboros-implementer/;
 
 interface Line {
   type?: string;

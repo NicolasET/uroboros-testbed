@@ -12,7 +12,7 @@ import type { Oracle } from './oracle.ts';
 import { sumTokens, usageLimitError, type ModeResult } from './results.ts';
 import { runSession } from './session.ts';
 import { countOpen, parseVerifierProbes, parseVerifierResults, verifierReports } from './verifier.ts';
-import { atLeast } from './versions.ts';
+import { agentCall, atLeast } from './versions.ts';
 import { createWorkspace } from './workspace.ts';
 
 export const VERIFY_DIR = join(SCENARIO_DIR, 'verify');
@@ -86,7 +86,7 @@ async function prepareWorkspace(c: VerifyCase): Promise<string> {
 
 export function verifierAvailable(pluginDir: string): boolean {
   const agents = join(pluginDir, 'agents');
-  return existsSync(agents) && readdirSync(agents).some((f) => f.startsWith('uroboros-verifier-'));
+  return existsSync(agents) && readdirSync(agents).some((f) => f.startsWith('uroboros-verifier'));
 }
 
 /** The DECISION LOG lines of the fixed state file, so the prompt and the file say the same. */
@@ -111,7 +111,7 @@ export function promptFor(workspace: string, pluginDir: string, profile: RolePro
     decisionLog(),
   ].join('\n');
   return [
-    `Use the Agent tool once: subagent_type \`uroboros:uroboros-verifier-${profile.effort}\`, model \`${profile.alias}\`, and as its prompt exactly the text between the markers. Wait for its report, then reply with the report verbatim and nothing else. Do not run, read or change anything yourself.`,
+    `Use the Agent tool once: ${agentCall('verifier', profile, version)}, and as its prompt exactly the text between the markers. Wait for its report, then reply with the report verbatim and nothing else. Do not run, read or change anything yourself.`,
     '<<<',
     dispatch,
     '>>>',

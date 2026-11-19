@@ -16,7 +16,7 @@ UROBOROS: {{UROBOROS_VERSION}}
 {{FLAGS}} (no --auto, no --only-business)
 
 ## MODEL/EFFORT
-- Reviewer: {{ALIAS}} / {{EFFORT}} (user-given via flag) → {{MODEL_ID}}. Dispatched as uroboros:uroboros-reviewer-{{EFFORT}}, model {{ALIAS}}.
+- Reviewer: {{ALIAS}} / {{EFFORT}} (user-given via flag) → {{MODEL_ID}}.
 - Refuter: reviewer's choice ({{ALIAS}} / {{EFFORT}}), no --refuter flag.
 - Verifier: reviewer's choice for implement ({{ALIAS}} / {{EFFORT}}), no --verifier flag.
 - Implementer: {{ALIAS}} / {{EFFORT}} (user-given via flag) → {{MODEL_ID}}.

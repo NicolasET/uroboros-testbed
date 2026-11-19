@@ -40,7 +40,7 @@ export const REVIEW_EVAL_VERSION = 3;
 export const REVIEW_EVAL_RUNS = 3;
 
 /** The implement eval (`implement` mode, `scenario/implement/`) is versioned apart, like the other evals. Bump it whenever `scenario/implement/`, its prompt, its measures or the fixture change; the `implement` row is compared only within one eval version. */
-export const IMPLEMENT_EVAL_VERSION = 1;
+export const IMPLEMENT_EVAL_VERSION = 2;
 /** Runs per implement eval variant: durations vary from run to run, so each variant reports every run and their median. */
 export const IMPLEMENT_EVAL_RUNS = 3;
 
