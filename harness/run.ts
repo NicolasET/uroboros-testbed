@@ -1,9 +1,9 @@
-// Entry point: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,small,goal,compat,verify,review,implement]
+// Entry point: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,small,medium,resume,parts,goal,compat,verify,review,implement]
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from './args.ts';
 import { checkEndToEnd } from './checks.ts';
-import { EVAL_MODES, IMPLEMENT_EVAL_VERSION, MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, PLUGINS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, SMALL_EVAL_VERSION, EARLIER_FEATURE, EARLIER_FEATURE_MODES, EARLIER_FEATURE_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
+import { EVAL_MODES, IMPLEMENT_EVAL_VERSION, MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, PLUGINS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, SMALL_EVAL_VERSION, MEDIUM_EVAL_VERSION, RESUME_EVAL_VERSION, PARTS_EVAL_VERSION, EARLIER_FEATURE, EARLIER_FEATURE_MODES, EARLIER_FEATURE_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
 import { readFlow } from './flow.ts';
 import { runImplementMode } from './implement-eval.ts';
 import { judgeRun } from './judge.ts';
@@ -13,7 +13,9 @@ import { previousModes, renderSummary } from './report.ts';
 import { sumTokens, usageLimitError, type ModeResult, type RunResult } from './results.ts';
 import { runReviewMode } from './review-eval.ts';
 import { runSession } from './session.ts';
-import { runSmallMode } from './small-eval.ts';
+import { runPartsMode } from './parts-eval.ts';
+import { runResumeMode } from './resume-eval.ts';
+import { runSizedMode } from './small-eval.ts';
 import { atLeast, SINGLE_FLOW_FROM } from './versions.ts';
 import { countKeptOnIdk, type EarlierScore } from './earlier.ts';
 import { resolveUroboros } from './uroboros-source.ts';
@@ -34,7 +36,12 @@ function promptFor(mode: Mode, profile: RoleProfile, idea: string): string {
     case 'compat':
       return '/uroboros:compat';
     case 'small':
-      throw new Error('the small mode builds its own prompt (small-eval.ts)');
+    case 'medium':
+      throw new Error('the sized modes build their own prompt (small-eval.ts)');
+    case 'resume':
+      throw new Error('the resume mode builds its own prompts (resume-eval.ts)');
+    case 'parts':
+      throw new Error('the parts mode builds its own prompts (parts-eval.ts)');
     case 'verify':
       throw new Error('the verify mode builds its own prompts (verify-eval.ts)');
     case 'review':
@@ -156,7 +163,7 @@ async function main(): Promise<void> {
   const sdkManifest = join(ROOT, 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'package.json');
   const sdkVersion = (JSON.parse(readFileSync(sdkManifest, 'utf8')) as { version: string }).version;
   const { dir: _dir, ...source } = uroboros;
-  const run: RunResult = { label: uroboros.label, scenarioVersion: SCENARIO_VERSION, verifyEvalVersion: VERIFY_EVAL_VERSION, reviewEvalVersion: REVIEW_EVAL_VERSION, implementEvalVersion: IMPLEMENT_EVAL_VERSION, smallEvalVersion: SMALL_EVAL_VERSION, uroboros: source, profile, sdkVersion, startedAt: new Date().toISOString(), modes: [] };
+  const run: RunResult = { label: uroboros.label, scenarioVersion: SCENARIO_VERSION, verifyEvalVersion: VERIFY_EVAL_VERSION, reviewEvalVersion: REVIEW_EVAL_VERSION, implementEvalVersion: IMPLEMENT_EVAL_VERSION, smallEvalVersion: SMALL_EVAL_VERSION, mediumEvalVersion: MEDIUM_EVAL_VERSION, resumeEvalVersion: RESUME_EVAL_VERSION, partsEvalVersion: PARTS_EVAL_VERSION, uroboros: source, profile, sdkVersion, startedAt: new Date().toISOString(), modes: [] };
 
   // A pilot (--cases) measures part of an eval: it never lands in results/.
   const resultDir = args.cases ? join(runDir, 'pilot-result') : join(RESULTS_DIR, uroboros.label);
@@ -183,8 +190,12 @@ async function main(): Promise<void> {
           ? await runReviewMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle, cases: args.cases })
           : mode === 'implement'
             ? await runImplementMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracleLog })
-            : mode === 'small'
-              ? await runSmallMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracleLog })
+            : mode === 'parts'
+              ? await runPartsMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracleLog })
+            : mode === 'resume'
+              ? await runResumeMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracleLog })
+            : mode === 'small' || mode === 'medium'
+              ? await runSizedMode(mode, { runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracleLog })
               : await runMode(mode, runDir, uroboros.dir, uroboros.version, profile, oracle, oracleLog));
     run.modes.push(result);
     run.modes.sort((a, b) => MODES.indexOf(a.mode) - MODES.indexOf(b.mode));

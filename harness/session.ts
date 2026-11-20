@@ -13,6 +13,8 @@ export interface SessionOutcome {
   /** Text of the last result — the Loop Report, or the compat report. */
   finalText: string;
   error?: string;
+  /** The session was cut on purpose by `stopWhen`, as a crash would cut it: no error is recorded. */
+  stopped?: boolean;
 }
 
 export interface SessionRequest {
@@ -23,6 +25,14 @@ export interface SessionRequest {
   profile: RoleProfile;
   oracle: Oracle;
   transcriptPath: string;
+  /** Kills the session, subagents included, the moment a message makes this true (the resume eval). */
+  stopWhen?: (message: unknown) => boolean;
+  /** More directories the session may read and write, beside its workspace (the parts eval: a part reads the main checkout). */
+  extraAllowed?: string[];
+  /** The session's temporary directory, when `<cwd>-tmp` would land inside another session's workspace. */
+  tmpDir?: string;
+  /** A shorter wall-clock guard than `SESSION_TIMEOUT_MS`. */
+  timeoutMs?: number;
 }
 
 /**
@@ -35,7 +45,8 @@ export interface SessionRequest {
 export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
   const started = Date.now();
   const abortController = new AbortController();
-  const timer = setTimeout(() => abortController.abort(), SESSION_TIMEOUT_MS);
+  const timeoutMs = req.timeoutMs ?? SESSION_TIMEOUT_MS;
+  const timer = setTimeout(() => abortController.abort(), timeoutMs);
   const outcome: SessionOutcome = { costUsd: 0, durationMs: 0, modelUsage: {}, finalText: '' };
 
   let closeInput!: () => void;
@@ -47,9 +58,9 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
   let liveTasks = 0;
   let idleTimer: NodeJS.Timeout | undefined;
   // The session's own temporary directory, so a command that needs one never reaches what other sessions left there.
-  const tmp = `${req.cwd}-tmp`;
+  const tmp = req.tmpDir ?? `${req.cwd}-tmp`;
   mkdirSync(tmp, { recursive: true });
-  const fence: Fence = { allowed: [req.cwd, req.pluginDir, tmp], sensitive: [ROOT, WORKSPACES_ROOT, homedir()], cwd: req.cwd };
+  const fence: Fence = { allowed: [req.cwd, req.pluginDir, tmp, ...(req.extraAllowed ?? [])], sensitive: [ROOT, WORKSPACES_ROOT, homedir()], cwd: req.cwd };
 
   try {
     for await (const m of query({
@@ -86,6 +97,11 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
       },
     })) {
       appendFileSync(req.transcriptPath, JSON.stringify(m) + '\n');
+      if (req.stopWhen?.(m)) {
+        outcome.stopped = true;
+        abortController.abort();
+        break;
+      }
       // A turn's own messages mean the session is not over: a pending close waits for the next idle result.
       // Anything else (a task summary, a status line) only restarts the quiet period.
       if (idleTimer) {
@@ -108,7 +124,7 @@ export async function runSession(req: SessionRequest): Promise<SessionOutcome> {
       }
     }
   } catch (e) {
-    outcome.error = abortController.signal.aborted ? `timeout after ${SESSION_TIMEOUT_MS} ms` : String(e);
+    if (!outcome.stopped) outcome.error = abortController.signal.aborted ? `timeout after ${timeoutMs} ms` : String(e);
   } finally {
     clearTimeout(idleTimer);
     closeInput();

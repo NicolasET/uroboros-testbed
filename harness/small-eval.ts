@@ -1,11 +1,14 @@
-// The `small` mode (uroboros 1.0.0+): one idea that is small by every signal — a text in one module — run in default
-// mode. It measures what the pipeline modes cannot show, since their idea adds a state to stored data: how much of the
-// loop a small change goes through (the size recorded, the subagents dispatched, whether goal.md was reviewed on its
-// own), with its questions, cost and time, and whether the change was built (two hidden tests).
+// The sized evals (uroboros 1.0.0+), `small` and `medium`: one idea each, run in default mode on the same fixture, with
+// its own truth for the oracle. They measure what the pipeline modes cannot show, since their idea adds a state to stored
+// data and is sized large: how much of the loop a smaller change goes through (the size recorded, the subagents
+// dispatched, whether goal.md was reviewed on its own, whether a plan was written), with its questions, cost and time,
+// and whether the change was built (hidden tests).
+// - `small`: the text the server prints when it starts — small by every signal.
+// - `medium`: a maximum price filter on the search — new behavior in one flow, on a contract others consume.
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { checkEndToEnd } from './checks.ts';
-import { SCENARIO_DIR, SMALL_EVAL_VERSION } from './config.ts';
+import { MEDIUM_EVAL_VERSION, SCENARIO_DIR, SMALL_EVAL_VERSION } from './config.ts';
 import { readFlow } from './flow.ts';
 import { modelFlags, type RoleProfile } from './model-profile.ts';
 import { Oracle } from './oracle.ts';
@@ -16,10 +19,19 @@ import { runGate, runHiddenTestFile } from './verify.ts';
 import { scoreVerifier } from './verifier.ts';
 import { createWorkspace } from './workspace.ts';
 
+export type SizedMode = 'small' | 'medium';
+
 export const SMALL_DIR = join(SCENARIO_DIR, 'small');
 export const SMALL_HIDDEN_TESTS = join(SMALL_DIR, 'startup.test.ts');
+export const MEDIUM_DIR = join(SCENARIO_DIR, 'medium');
+export const MEDIUM_HIDDEN_TESTS = join(MEDIUM_DIR, 'max-price.test.ts');
 
-export interface SmallRequest {
+const SIZED: Record<SizedMode, { dir: string; hiddenTests: string }> = {
+  small: { dir: SMALL_DIR, hiddenTests: SMALL_HIDDEN_TESTS },
+  medium: { dir: MEDIUM_DIR, hiddenTests: MEDIUM_HIDDEN_TESTS },
+};
+
+export interface SizedRequest {
   runDir: string;
   pluginDir: string;
   version: string;
@@ -27,17 +39,17 @@ export interface SmallRequest {
   oracleLog: string;
 }
 
-export async function runSmallMode(req: SmallRequest): Promise<ModeResult> {
-  const mode = 'small' as const;
+export async function runSizedMode(mode: SizedMode, req: SizedRequest): Promise<ModeResult> {
   const startedAt = new Date().toISOString();
   const base = { mode, startedAt, harnessCostUsd: 0, questionsAsked: 0 };
   if (!atLeast(req.version, SINGLE_FLOW_FROM)) {
     return { ...base, durationMs: 0, costUsd: 0, tokens: sumTokens({}), models: [], e2e: { pass: true, checks: {} }, notApplicable: `the size of the idea sets the route only from uroboros ${SINGLE_FLOW_FROM}` };
   }
 
-  const idea = readFileSync(join(SMALL_DIR, 'idea.md'), 'utf8').trim();
-  // Its own oracle: this user knows the small idea, not the pause feature.
-  const oracle = new Oracle(readFileSync(join(SMALL_DIR, 'truth.md'), 'utf8'), req.oracleLog);
+  const scenario = SIZED[mode];
+  const idea = readFileSync(join(scenario.dir, 'idea.md'), 'utf8').trim();
+  // Its own oracle: this user knows this idea, not the pause feature.
+  const oracle = new Oracle(readFileSync(join(scenario.dir, 'truth.md'), 'utf8'), req.oracleLog);
   const workspace = await createWorkspace(mode);
   mkdirSync(join(req.runDir, mode), { recursive: true });
   const transcriptPath = join(req.runDir, mode, 'transcript.jsonl');
@@ -60,7 +72,7 @@ export async function runSmallMode(req: SmallRequest): Promise<ModeResult> {
     }
   };
   const gate = await measure('gate', () => runGate(workspace));
-  const hidden = await measure('hidden tests', () => runHiddenTestFile(workspace, SMALL_HIDDEN_TESTS));
+  const hidden = await measure('hidden tests', () => runHiddenTestFile(workspace, scenario.hiddenTests));
   const flow = await measure('flow', async () => readFlow(workspace, transcriptPath));
   const verifier = await measure('verifier reports', async () => scoreVerifier(transcriptPath));
   const e2e = (await measure('end-to-end checks', () => checkEndToEnd({ mode, version: req.version, idea, workspace, session, questionsAsked: oracle.asked, gate }))) ?? {
@@ -68,5 +80,6 @@ export async function runSmallMode(req: SmallRequest): Promise<ModeResult> {
     checks: { 'checks could run': false },
   };
 
-  return { ...base, ...measured, harnessCostUsd: oracle.costUsd, e2e, gate, hidden, verifier, flow, smallEvalVersion: SMALL_EVAL_VERSION, error: failures.length ? failures.join(' | ') : undefined };
+  const evalVersion = mode === 'small' ? { smallEvalVersion: SMALL_EVAL_VERSION } : { mediumEvalVersion: MEDIUM_EVAL_VERSION };
+  return { ...base, ...measured, harnessCostUsd: oracle.costUsd, e2e, gate, hidden, verifier, flow, ...evalVersion, error: failures.length ? failures.join(' | ') : undefined };
 }

@@ -28,7 +28,7 @@ interface Evidence {
 /** Every task of a `tasks.md` is checked, and there is at least one. Both [X] and [x] mark a done task in markdown. */
 export const everyTaskChecked = (tasks: string): boolean => /^\s*- \[[xX]\]/m.test(tasks) && !/^\s*- \[ \]/m.test(tasks);
 
-const SINGLE_FLOW_MODES: readonly Mode[] = ['default', 'auto', 'small'];
+const SINGLE_FLOW_MODES: readonly Mode[] = ['default', 'auto', 'small', 'medium', 'resume'];
 
 /** Whether this mode of this version is a run of the single flow (uroboros 1.0.0+): `goal.md` under `.uroboros/`, no spec-kit artifact. */
 export const isSingleFlow = (mode: Mode, version: string): boolean => SINGLE_FLOW_MODES.includes(mode) && atLeast(version, SINGLE_FLOW_FROM);

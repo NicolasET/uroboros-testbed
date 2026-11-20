@@ -48,6 +48,8 @@ describe('the shape of a single-flow run', () => {
   it('takes the last size the state file records, and none when it records none', () => {
     assert.equal(recordedSize('SIZE: small — Reach: one function (set by the run)\nSIZE: medium — Risk: a contract others consume (set by the user)'), 'medium');
     assert.equal(recordedSize('The size is small.'), undefined);
+    assert.equal(recordedSize('## SIZE\nmedium — Reach: new behavior in one surface (set by the run). Round cap: 3 per phase.\n\n## PARTS'), 'medium');
+    assert.equal(recordedSize('## SIZE\n\nThe run has not sized the idea yet.'), undefined);
   });
 
   it('finds the plan, the private record inside .git and the idea left as typed in a project file', () => {
@@ -75,6 +77,7 @@ describe('the shape of a single-flow run', () => {
     assert.equal(isSingleFlow('default', '0.32.0'), false);
     assert.equal(isSingleFlow('auto', '1.0.0'), true);
     assert.equal(isSingleFlow('small', '1.2.0'), true);
+    assert.equal(isSingleFlow('medium', '1.0.0'), true);
     assert.equal(isSingleFlow('goal', '1.0.0'), false);
   });
 });

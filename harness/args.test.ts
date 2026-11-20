@@ -4,7 +4,7 @@ import { parseArgs } from './args.ts';
 
 describe('run arguments', () => {
   it('measures every mode but the implement eval when no mode is named', () => {
-    assert.deepEqual(parseArgs(['--uroboros', 'v0.24.0']).modes, ['default', 'auto', 'small', 'goal', 'compat', 'verify', 'review']);
+    assert.deepEqual(parseArgs(['--uroboros', 'v0.24.0']).modes, ['default', 'auto', 'small', 'medium', 'resume', 'goal', 'compat', 'verify', 'review']);
   });
 
   it('runs the implement eval when it is named, and refuses an unknown mode', () => {

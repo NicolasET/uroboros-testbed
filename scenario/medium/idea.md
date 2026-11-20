@@ -1,0 +1,1 @@
+Agrega a la búsqueda de publicaciones un filtro por precio máximo: `GET /listings?maxPrice=<centavos>` devuelve solo las publicaciones cuyo precio no pasa de ese monto. Debe poder combinarse con el filtro de título que ya existe (`q`).

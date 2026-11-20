@@ -29,6 +29,11 @@ const ROWS: Row[] = [
   ['goal.md reviewed before any code', (r) => (r.flow ? (r.flow.goalReviewedBeforeCode ? 'yes' : 'no') : '-')],
   ['plan.md written', (r) => (r.flow ? (r.flow.planWritten ? 'yes' : 'no') : '-')],
   ['what the user typed kept inside .git', (r) => (r.flow ? (r.flow.privateRecordInGit ? 'yes' : 'no') : '-')],
+  ['resume: cut with its implementer running · marker taken over · goal.md unchanged · questions on the resume', (r) => (r.resumeEval ? [r.resumeEval.interrupted ? 'yes' : 'no', r.resumeEval.markerTakenOver ? 'yes' : 'no', r.resumeEval.goalUnchanged ? 'yes' : 'no', r.resumeEval.questionsOnResume].join(' · ') : '-')],
+  ['resume: dispatched before the cut → by the resume (implementer/reviewer/refuter/verifier)', (r) => (r.resumeEval ? [r.resumeEval.before, r.resumeEval.after].map((d) => [d.implementer, d.reviewer, d.refuter, d.verifier].join('/')).join(' → ') : '-')],
+  ['parts: split · each part\'s marker · dependencies installed in its worktree · joint report', (r) => (r.partsEval ? [r.partsEval.split ? 'yes' : 'no', r.partsEval.parts.map((p) => `${p.slug} ${p.markerStatus}`).join(', ') || '-', r.partsEval.parts.map((p) => (p.dependencies ? 'yes' : 'no')).join(', ') || '-', `${r.partsEval.jointReport ? 'yes' : 'no'} (${r.partsEval.jointReportLine})`].join(' · ') : '-')],
+  ['parts: hidden tests in the main checkout → in each part', (r) => (r.partsEval ? [r.partsEval.mainHidden, ...r.partsEval.parts.map((p) => p.hidden)].map((h) => `filter ${h.filter ? `${h.filter.passed}/${h.filter.total}` : '-'}, startup ${h.startup ? `${h.startup.passed}/${h.startup.total}` : '-'}`).join(' → ') : '-')],
+  ['parts: questions (main · each part), cost of each part', (r) => (r.partsEval ? `${r.partsEval.mainQuestions} · ${r.partsEval.parts.map((p) => p.questions).join(', ') || '-'}; ${r.partsEval.parts.map((p) => `$${p.costUsd.toFixed(2)}`).join(', ') || '-'}` : '-')],
   ['gate (test/typecheck/lint)', (r) => (r.gate ? [r.gate.test, r.gate.typecheck, r.gate.lint].map((ok) => (ok ? '✓' : '✗')).join(' ') : '-')],
   ['questions asked', (r) => String(r.questionsAsked)],
   ['cost (USD, estimate)', (r) => r.costUsd.toFixed(2)],
@@ -73,6 +78,9 @@ function evalVersion(run: RunResult, result: ModeResult): number | undefined {
   if (result.mode === 'review') return result.reviewerEval?.version ?? run.reviewEvalVersion;
   if (result.mode === 'implement') return result.implementEval?.version ?? run.implementEvalVersion;
   if (result.mode === 'small') return result.smallEvalVersion ?? run.smallEvalVersion;
+  if (result.mode === 'medium') return result.mediumEvalVersion ?? run.mediumEvalVersion;
+  if (result.mode === 'resume') return result.resumeEval?.version ?? run.resumeEvalVersion;
+  if (result.mode === 'parts') return result.partsEval?.version ?? run.partsEvalVersion;
   return undefined;
 }
 
@@ -86,6 +94,9 @@ function sameMeasure(older: RunResult, result: ModeResult, current: RunResult): 
   if (result.mode === 'review') return evalVersion(older, result) === current.reviewEvalVersion;
   if (result.mode === 'implement') return evalVersion(older, result) === current.implementEvalVersion;
   if (result.mode === 'small') return evalVersion(older, result) === current.smallEvalVersion;
+  if (result.mode === 'medium') return evalVersion(older, result) === current.mediumEvalVersion;
+  if (result.mode === 'resume') return evalVersion(older, result) === current.resumeEvalVersion;
+  if (result.mode === 'parts') return evalVersion(older, result) === current.partsEvalVersion;
   return older.scenarioVersion === current.scenarioVersion;
 }
 
@@ -163,7 +174,7 @@ export function renderSummary(run: RunResult, previous: Map<Mode, PreviousMode>)
     '',
     `- uroboros: ${run.uroboros.requested} → ${run.uroboros.version} @ ${run.uroboros.commit.slice(0, 7)}${run.uroboros.dirty ? ' (uncommitted changes)' : ''}`,
     `- roles: ${run.profile.modelId} at \`${run.profile.effort}\` effort (the model's default) · Claude Code ${run.profile.claudeCodeVersion} · Agent SDK ${run.sdkVersion}`,
-    `- scenario: v${run.scenarioVersion}${run.verifyEvalVersion ? ` · verifier eval: v${run.verifyEvalVersion}` : ''}${run.reviewEvalVersion ? ` · reviewer eval: v${run.reviewEvalVersion}` : ''}${run.implementEvalVersion ? ` · implement eval: v${run.implementEvalVersion}` : ''}${run.smallEvalVersion ? ` · small eval: v${run.smallEvalVersion}` : ''} · started: ${run.startedAt}`,
+    `- scenario: v${run.scenarioVersion}${run.verifyEvalVersion ? ` · verifier eval: v${run.verifyEvalVersion}` : ''}${run.reviewEvalVersion ? ` · reviewer eval: v${run.reviewEvalVersion}` : ''}${run.implementEvalVersion ? ` · implement eval: v${run.implementEvalVersion}` : ''}${run.smallEvalVersion ? ` · small eval: v${run.smallEvalVersion}` : ''}${run.mediumEvalVersion ? ` · medium eval: v${run.mediumEvalVersion}` : ''}${run.resumeEvalVersion ? ` · resume eval: v${run.resumeEvalVersion}` : ''}${run.partsEvalVersion ? ` · parts eval: v${run.partsEvalVersion}` : ''} · started: ${run.startedAt}`,
     `- compared with: ${[...byLabel].map(([label, modes]) => `${modes.join(', ')} → ${label}`).join('; ') || 'nothing yet — this is the first result'}`,
   ];
   for (const model of new Set([...previous.values()].map((p) => p.profile.modelId))) {

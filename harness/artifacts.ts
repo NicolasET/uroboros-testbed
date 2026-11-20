@@ -10,7 +10,8 @@ export const featureRoot = (mode: Mode, version: string): 'specs' | '.uroboros' 
 export function featureDir(workspace: string, root: 'specs' | '.uroboros'): string | undefined {
   const base = join(workspace, root);
   if (!existsSync(base)) return undefined;
-  const dirs = readdirSync(base, { withFileTypes: true }).filter((d) => d.isDirectory() && d.name !== EARLIER_FEATURE);
+  // `.uroboros/parts/` holds the drafts of a split idea's other parts, never a feature.
+  const dirs = readdirSync(base, { withFileTypes: true }).filter((d) => d.isDirectory() && d.name !== EARLIER_FEATURE && d.name !== 'parts');
   return dirs.length ? join(base, dirs[0]!.name) : undefined;
 }
 

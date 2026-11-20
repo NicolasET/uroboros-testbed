@@ -5,7 +5,7 @@
 // implement takes from the first implementer to the session's end, what the session costs, and how many implementers ran
 // at once. From 0.25.0 the plugin is measured twice: as it runs by default, and with `--parallel=3`, one implementer per story.
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import type { ModelUsage } from '@anthropic-ai/claude-agent-sdk';
 import { everyTaskChecked } from './checks.ts';
 import { IMPLEMENT_EVAL_RUNS, IMPLEMENT_EVAL_VERSION, SCENARIO_DIR } from './config.ts';
@@ -22,6 +22,12 @@ import { createWorkspace } from './workspace.ts';
 export const IMPLEMENT_DIR = join(SCENARIO_DIR, 'implement');
 export const FEATURE = '001-order-lifecycle';
 const FEATURE_PATH = join('specs', FEATURE);
+/** From uroboros 1.0.0 the fixed feature is a goal.md with a reviewed plan of four groups, and the run is resumed at its build rounds. */
+export const goalForm = (version: string): boolean => atLeast(version, SINGLE_FLOW_FROM);
+export const GOAL_FEATURE = 'order-lifecycle';
+export const featurePath = (version: string): string => (goalForm(version) ? join('.uroboros', GOAL_FEATURE) : FEATURE_PATH);
+/** The session the marker names: one that no longer exists, so the resume takes the run over. */
+const EARLIER_SESSION = '5b0f2c1e-8d4a-4c7e-9a3b-2f6d1e7c4a90';
 const HIDDEN_TESTS = join(IMPLEMENT_DIR, 'hidden-tests', 'orders.acceptance.test.ts');
 /** The fixed state file has the shape a 0.24.0 run leaves after analyze. */
 export const FIRST_VERSION = '0.24.0';
@@ -85,6 +91,7 @@ export function fillState(template: string, values: Record<string, string>): str
  * measured version and the role model, so the resume sees neither a version change nor a model to ask about.
  */
 export async function prepareWorkspace(version: string, profile: RoleProfile): Promise<string> {
+  if (goalForm(version)) return prepareGoalWorkspace(version, profile);
   const workspace = await createWorkspace('implement');
   const base = await execOrThrow('git', ['rev-parse', 'HEAD'], workspace);
   await execOrThrow('git', ['checkout', '--quiet', '-b', FEATURE], workspace);
@@ -106,6 +113,44 @@ export async function prepareWorkspace(version: string, profile: RoleProfile): P
   return workspace;
 }
 
+/**
+ * The same for uroboros 1.0.0+: the fixture committed on `main`, then the feature branch with goal.md, the reviewed plan and the
+ * state file left uncommitted under `.uroboros/`, what the user typed inside `.git`, and the marker of a session that is gone —
+ * a large run interrupted once its plan was CLEAN, before the first implementer.
+ */
+async function prepareGoalWorkspace(version: string, profile: RoleProfile): Promise<string> {
+  const workspace = await createWorkspace('implement');
+  const base = await execOrThrow('git', ['rev-parse', 'HEAD'], workspace);
+  await execOrThrow('git', ['checkout', '--quiet', '-b', `goal/${GOAL_FEATURE}`], workspace);
+  const source = join(IMPLEMENT_DIR, 'feature-goal');
+  const feature = join(workspace, featurePath(version));
+  cpSync(source, feature, { recursive: true, filter: (path) => !path.endsWith('private-record.md') });
+  const common = resolve(workspace, (await execOrThrow('git', ['rev-parse', '--git-common-dir'], workspace)).trim());
+  const privateRecord = join(common, 'uroboros', 'private', `${GOAL_FEATURE}.md`);
+  mkdirSync(dirname(privateRecord), { recursive: true });
+  cpSync(join(source, 'private-record.md'), privateRecord);
+  const state = fillState(readFileSync(join(feature, 'loop-state.md'), 'utf8'), {
+    BASE_SHA: base,
+    UROBOROS_VERSION: version,
+    FLAGS: modelFlags(profile),
+    ALIAS: profile.alias,
+    EFFORT: profile.effort,
+    MODEL_ID: profile.modelId,
+    PRIVATE_RECORD: privateRecord.replace(/\\/g, '/'),
+  });
+  writeFileSync(join(feature, 'loop-state.md'), state);
+  const dir = `.uroboros/${GOAL_FEATURE}`;
+  const marker = { mode: 'goal', feature: GOAL_FEATURE, dir, state_file: `${dir}/loop-state.md`, session_id: EARLIER_SESSION, status: 'active', rounds_used: 0, relaunches: 0, rounds_max: 3 };
+  writeFileSync(join(workspace, '.uroboros', 'active-run.json'), `${JSON.stringify(marker)}\n`);
+  return workspace;
+}
+
+/** Whether the run's marker closed as complete. */
+function markerComplete(workspace: string): boolean {
+  const path = join(workspace, '.uroboros', 'active-run.json');
+  return existsSync(path) && (JSON.parse(readFileSync(path, 'utf8')) as { status?: string }).status === 'complete';
+}
+
 /** The body of a state file's `### Waves` section, up to the next heading; undefined when there is none. */
 export function wavesSection(state: string): string | undefined {
   const lines = state.split(/\r?\n/);
@@ -118,8 +163,8 @@ export function wavesSection(state: string): string | undefined {
 const readIfThere = (path: string): string => (existsSync(path) ? readFileSync(path, 'utf8') : '');
 
 /** What one session left: the gate, the tasks, the hidden tests (copied in after the gate ran) and the implementers' timeline. */
-async function measureRun(workspace: string, transcriptPath: string, session: SessionOutcome, questionsAsked: number): Promise<ImplementRun> {
-  const feature = join(workspace, FEATURE_PATH);
+async function measureRun(workspace: string, transcriptPath: string, session: SessionOutcome, questionsAsked: number, version: string): Promise<ImplementRun> {
+  const feature = join(workspace, featurePath(version));
   const gate = await runGate(workspace);
   return {
     ...summarizeImplementers(readImplementerTimeline(transcriptPath)),
@@ -128,7 +173,8 @@ async function measureRun(workspace: string, transcriptPath: string, session: Se
     tokens: sumTokens(session.modelUsage),
     questionsAsked,
     gateGreen: gate.test && gate.typecheck && gate.lint,
-    everyTaskChecked: everyTaskChecked(readIfThere(join(feature, 'tasks.md'))),
+    // From 1.0.0 there is no task list: the run is whole when its marker closed as complete.
+    everyTaskChecked: goalForm(version) ? markerComplete(workspace) : everyTaskChecked(readIfThere(join(feature, 'tasks.md'))),
     hidden: await runHiddenTestFile(workspace, HIDDEN_TESTS),
     waves: wavesSection(readIfThere(join(feature, 'loop-state.md'))),
     error: session.error,
@@ -148,10 +194,6 @@ interface ImplementModeRequest {
 export async function runImplementMode(req: ImplementModeRequest): Promise<ModeResult> {
   const startedAt = new Date().toISOString();
   const base = { mode: 'implement' as const, startedAt, harnessCostUsd: 0, questionsAsked: 0 };
-  // Its fixed feature is a spec-kit one (spec.md, plan.md, tasks.md, FR and US ids): from 1.0.0 the roles read goal.md and plan.md instead.
-  if (atLeast(req.version, SINGLE_FLOW_FROM)) {
-    return { ...base, durationMs: 0, costUsd: 0, tokens: sumTokens({}), models: [], e2e: { pass: true, checks: {} }, notApplicable: `the implement eval's fixed feature is written as a spec-kit feature; its goal.md form for uroboros ${SINGLE_FLOW_FROM} does not exist yet` };
-  }
   if (!atLeast(req.version, FIRST_VERSION)) {
     return { ...base, durationMs: 0, costUsd: 0, tokens: sumTokens({}), models: [], e2e: { pass: true, checks: {} }, notApplicable: `the implement eval's state file has the shape of uroboros ${FIRST_VERSION}` };
   }
@@ -181,7 +223,7 @@ export async function runImplementMode(req: ImplementModeRequest): Promise<ModeR
       if (aborted) break;
       // Measuring must never crash the run: a run that could not be measured is recorded as a failure.
       try {
-        variant.runs.push(await measureRun(workspace, transcriptPath, session, oracle.asked - askedBefore));
+        variant.runs.push(await measureRun(workspace, transcriptPath, session, oracle.asked - askedBefore, req.version));
       } catch (e) {
         failures.push(`${variant.name}-${i}: measuring: ${String(e).slice(0, 300)}`);
       }
@@ -196,7 +238,7 @@ export async function runImplementMode(req: ImplementModeRequest): Promise<ModeR
     'every run measured': runs.length === IMPLEMENT_EVAL_RUNS * evaluation.variants.length,
     'an implementer ran in every run': runs.every((r) => r.dispatches > 0),
     'gate green in every run': runs.every((r) => r.gateGreen),
-    'every task checked in every run': runs.every((r) => r.everyTaskChecked),
+    [goalForm(req.version) ? 'the marker closed as complete in every run' : 'every task checked in every run']: runs.every((r) => r.everyTaskChecked),
     'no session error': runs.every((r) => !r.error),
   };
   return {

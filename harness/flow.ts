@@ -1,7 +1,7 @@
 // What a single-flow run (uroboros 1.0.0+) did, read from its state file, its transcript and its workspace:
 // the size it recorded, which subagents it dispatched, and where it kept what the user typed.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { featureDir, readIfExists } from './artifacts.ts';
 
 export type Size = 'small' | 'medium' | 'large';
@@ -55,12 +55,22 @@ export function dispatches(transcriptPath: string): Dispatch[] {
 
 /** The size loop-state.md records last: a run may raise it mid-way. */
 export function recordedSize(state: string): Size | undefined {
-  const all = [...state.matchAll(/^SIZE:\s*[`*]*\s*(small|medium|large)\b/gim)];
+  // Written as a `SIZE: <size>` line or, in some runs, as a `## SIZE` section whose first line opens with the size.
+  const all = [...state.matchAll(/^(?:SIZE:[ \t]*|#+[ \t]*SIZE[ \t]*\r?\n+)[`*]*[ \t]*(small|medium|large)\b/gim)];
   return all.at(-1)?.[1]?.toLowerCase() as Size | undefined;
 }
 
+/** Where the plugin keeps what the user typed: in the repository's shared `.git`, which a worktree's `.git` file points into. */
+export function privateRecordDir(workspace: string): string {
+  const dotGit = join(workspace, '.git');
+  if (!existsSync(dotGit) || statSync(dotGit).isDirectory()) return join(dotGit, 'uroboros', 'private');
+  const gitDir = resolve(workspace, readFileSync(dotGit, 'utf8').replace(/^gitdir:\s*/, '').trim());
+  const common = join(gitDir, 'commondir');
+  return join(existsSync(common) ? resolve(gitDir, readFileSync(common, 'utf8').trim()) : gitDir, 'uroboros', 'private');
+}
+
 function hasPrivateRecord(workspace: string): boolean {
-  const dir = join(workspace, '.git', 'uroboros', 'private');
+  const dir = privateRecordDir(workspace);
   return existsSync(dir) && readdirSync(dir).some((name) => name.endsWith('.md') && statSync(join(dir, name)).size > 0);
 }
 

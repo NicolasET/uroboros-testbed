@@ -39,13 +39,19 @@ export const REVIEW_EVAL_VERSION = 4;
 /** Runs per reviewer eval case. */
 export const REVIEW_EVAL_RUNS = 3;
 
-/** The implement eval (`implement` mode, `scenario/implement/`) is versioned apart, like the other evals. Bump it whenever `scenario/implement/`, its prompt, its measures or the fixture change; the `implement` row is compared only within one eval version. */
-export const IMPLEMENT_EVAL_VERSION = 2;
+/** The implement eval (`implement` mode, `scenario/implement/`) is versioned apart, like the other evals. Bump it whenever `scenario/implement/`, its prompt, its measures or the fixture change; the `implement` row is compared only within one eval version. v3: the fixed feature also exists as a `goal.md` with a reviewed `plan.md` of four groups (`scenario/implement/feature-goal/`), which uroboros 1.0.0+ resumes at its build rounds; with no task list there, a run is whole when its marker closed as complete. Earlier versions keep the spec-kit feature. */
+export const IMPLEMENT_EVAL_VERSION = 3;
 /** Runs per implement eval variant: durations vary from run to run, so each variant reports every run and their median. */
 export const IMPLEMENT_EVAL_RUNS = 3;
 
 /** The small eval (`small` mode, `scenario/small/`) is versioned apart, like the other evals: its own idea, truth and hidden tests on the same fixture. Bump it whenever `scenario/small/`, its measures or the fixture change; the `small` row is compared only within one eval version. */
 export const SMALL_EVAL_VERSION = 1;
+/** The medium eval (`medium` mode, `scenario/medium/`): the same as the small eval for an idea of medium size. Bump it whenever `scenario/medium/`, its measures or the fixture change. */
+export const MEDIUM_EVAL_VERSION = 1;
+/** The resume eval (`resume` mode): the small idea, cut when its first implementer starts and resumed by another session. Bump it whenever `scenario/small/`, the point of the cut, its measures or the fixture change. */
+export const RESUME_EVAL_VERSION = 1;
+/** The parts eval (`parts` mode, `scenario/parts/`): one idea holding the small and the medium features, split and run at the same time, the harness starting the part's session as the user would by hand. Runs only when asked for. Bump it whenever `scenario/parts/`, the two features' hidden tests, how a part is started, its measures or the fixture change. */
+export const PARTS_EVAL_VERSION = 1;
 
 export const UROBOROS_REPO_URL = 'https://github.com/NicolasET/uroboros.git';
 
@@ -55,12 +61,12 @@ export const ROLE_MODEL_ALIAS = 'opus';
 export const ORACLE_MODEL = 'claude-haiku-4-5-20251001';
 export const JUDGE_MODEL = 'claude-sonnet-5';
 
-export const MODES = ['default', 'auto', 'small', 'goal', 'compat', 'verify', 'review', 'implement'] as const;
+export const MODES = ['default', 'auto', 'small', 'medium', 'resume', 'parts', 'goal', 'compat', 'verify', 'review', 'implement'] as const;
 export type Mode = (typeof MODES)[number];
 /** The modes versioned by their own eval version instead of the scenario's. */
-export const EVAL_MODES: readonly Mode[] = ['small', 'verify', 'review', 'implement'];
+export const EVAL_MODES: readonly Mode[] = ['small', 'medium', 'resume', 'parts', 'verify', 'review', 'implement'];
 /** The modes a run without `--modes` measures: every mode but the implement eval, which runs only when asked for (~1.5 h per version). */
-export const DEFAULT_MODES: readonly Mode[] = MODES.filter((m) => m !== 'implement');
+export const DEFAULT_MODES: readonly Mode[] = MODES.filter((m) => m !== 'implement' && m !== 'parts');
 
 /** Wall-clock guard per mode; a full pipeline run takes well under this. */
 export const SESSION_TIMEOUT_MS = 4 * 60 * 60 * 1000;

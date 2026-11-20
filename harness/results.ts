@@ -7,6 +7,8 @@ import type { RoleProfile } from './model-profile.ts';
 import type { ReviewerEval } from './review-eval.ts';
 import type { EarlierScore } from './earlier.ts';
 import type { FlowShape } from './flow.ts';
+import type { PartsEval } from './parts-eval.ts';
+import type { ResumeEval } from './resume-eval.ts';
 import type { UroborosSource } from './uroboros-source.ts';
 import type { GateResult, HiddenTestsResult } from './verify.ts';
 import type { VerifierEval } from './verify-eval.ts';
@@ -40,6 +42,12 @@ export interface ModeResult {
   flow?: FlowShape;
   /** `small` mode only: the small eval version this result was measured with. */
   smallEvalVersion?: number;
+  /** `medium` mode only: the medium eval version this result was measured with. */
+  mediumEvalVersion?: number;
+  /** `resume` mode only: what the cut and the resume did. */
+  resumeEval?: ResumeEval;
+  /** `parts` mode only: the split, each part's run and the joint report. */
+  partsEval?: PartsEval;
   /** Set when the mode does not apply to this uroboros version (e.g. `verify` before the verifier existed). */
   notApplicable?: string;
   ambiguity?: AmbiguityScore;
@@ -63,6 +71,12 @@ export interface RunResult {
   implementEvalVersion?: number;
   /** The small eval version (`small` mode), compared apart from the scenario version. */
   smallEvalVersion?: number;
+  /** The medium eval version (`medium` mode), compared apart from the scenario version. */
+  mediumEvalVersion?: number;
+  /** The resume eval version (`resume` mode), compared apart from the scenario version. */
+  resumeEvalVersion?: number;
+  /** The parts eval version (`parts` mode), compared apart from the scenario version. */
+  partsEvalVersion?: number;
   uroboros: Omit<UroborosSource, 'dir'>;
   profile: RoleProfile;
   sdkVersion: string;

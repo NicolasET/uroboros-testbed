@@ -4,7 +4,7 @@ A fixed, repeatable end-to-end test for the [uroboros](https://github.com/Nicola
 
 ## What one run measures
 
-For each mode — the default pipeline, `--auto`, `--goal`, `/uroboros:compat`, and the verifier and reviewer evals (`verify`, `review`) — plus, only when asked for with `--modes implement`, the implement eval. From uroboros 1.0.0 the plugin has one flow and no spec-kit; [what changes in the measure](#uroboros-100-and-later) is below:
+For each mode — the default pipeline, `--auto`, `--goal`, `/uroboros:compat`, and the verifier and reviewer evals (`verify`, `review`) — plus, only when asked for with `--modes`, the implement eval and the parts eval. From uroboros 1.0.0 the plugin has one flow and no spec-kit; [what changes in the measure](#uroboros-100-and-later) is below:
 
 | Measure | How |
 |---|---|
@@ -51,7 +51,8 @@ From 1.0.0 uroboros has one flow: no spec-kit pipeline, no `--goal` mode, no com
 - **New rows** for every 1.0.0+ run: the size it recorded, the subagents it dispatched by role, the phase of each review, whether `goal.md` was reviewed before any code, whether a `plan.md` was written, and whether what the user typed is inside `.git`.
 - **`goal` and `compat`** are recorded as not applicable: `--goal` selects nothing and the compat skill is gone.
 - **`verify` and `review`** measure the same product and the same planted defects on the feature written as a `goal.md` (`scenario/verify/feature-goal/`, `scenario/review/feature-goal/`), with the dispatch of the 1.0.0 protocols. Their eval versions (v4) say so; a 1.0.0+ row is not comparable with an earlier version's.
-- **`implement`** is recorded as not applicable: its fixed feature and the state file it resumes are spec-kit ones, not yet written for 1.0.0.
+- **`implement`** resumes the same feature written as a `goal.md` with a reviewed `plan.md` of four groups (`scenario/implement/feature-goal/`); see [the implement eval](#the-implement-eval-implement-mode). Its eval version (v3) says so.
+- **`small`, `medium`, `resume` and `parts`** exist only from 1.0.0: one section each, below.
 - **The fixture keeps spec-kit 1.1.0 installed.** Earlier versions need it; 1.0.0 ignores it, so its runs also measure a project that comes from spec-kit.
 
 ## The small eval (`small` mode)
@@ -64,6 +65,31 @@ The pipeline modes' idea adds a state to stored data, so it is never small. The 
 
 Versioned apart (`SMALL_EVAL_VERSION`). Versions before 1.0.0 record the mode as not applicable.
 
+## The medium eval (`medium` mode)
+
+The same measure for an idea that is medium by its reach and nothing else: a maximum price in the listings search ([`scenario/medium/`](./scenario/medium/)) — new behavior in one flow, no item of the risk list, no stored data touched. A medium run reviews `goal.md` before any code and writes no `plan.md`; the end-to-end checks hold it to that. Four hidden tests exercise the filter in process.
+
+Versioned apart (`MEDIUM_EVAL_VERSION`). Versions before 1.0.0 record the mode as not applicable.
+
+## The resume eval (`resume` mode)
+
+Whether a run that was cut goes on where it stopped. A first session runs the small idea and the harness kills it, subagents included, the moment its implementer starts; a second session — `/uroboros:run` with the model flags and no idea — finds the marker of a session that no longer exists. Measured:
+
+- whether the second session took the marker over and left `goal.md` byte for byte as the first wrote it;
+- what each session dispatched: the lost implementer is dispatched again, nothing before it is;
+- the questions on the resume — at most the one the plugin's marker rule prescribes, whether to take the run over; the oracle's truth holds that answer;
+- the small eval's two hidden tests, and the first session's cost and time apart from the second's.
+
+Versioned apart (`RESUME_EVAL_VERSION`). Versions before 1.0.0 record the mode as not applicable.
+
+## The parts eval (`parts` mode)
+
+One idea that holds two features with nothing in common — the medium eval's price filter and the small eval's startup line — from a user who wants both built at the same time ([`scenario/parts/`](./scenario/parts/)). The session that runs intake splits the idea and carries one part; the other runs in a session and git worktree of its own (uroboros's parts protocol).
+
+- **The harness is the user of the "by hand" path.** A session of this harness has no tool that starts another session, so the plugin creates the worktree and gives the user the command to run. When a part's worktree and its finished draft exist, the harness starts that session — `/uroboros:run --part=<draft>` with the model flags, in the worktree — while the main session is still running. The part may also read the main checkout, where its draft and the shared `.git` are.
+- **Measured**: whether the split happened; per part, its marker's status, its questions, cost and time, whether it installed the project's dependencies in its worktree (a new worktree has none: they are not tracked; one created inside the main checkout runs without them, since Node and npm look in every folder above), whether its own record of what the user typed is in the repository's shared `.git`, and which of the two features' hidden tests pass there; the same hidden tests in the main checkout; whether the main session waited and reported once, naming every part (`JOINT REPORT`); and that the idea as typed is in no project file of either checkout.
+- A run without `--modes` leaves it out: it holds two full runs. Versioned apart (`PARTS_EVAL_VERSION`). Versions before 1.0.0 record the mode as not applicable.
+
 ## The implement eval (`implement` mode)
 
 The pipeline modes cannot show how fast implement is when its user stories could be built at the same time: their `tasks.md` puts every story's tests in one file, so uroboros 0.25.0, which under `--parallel=N` runs one implementer per story when the stories share no file, runs one implementer there, as earlier versions do. The `implement` mode measures the implement phase alone, on a feature whose stories share no file:
@@ -72,6 +98,7 @@ The pipeline modes cannot show how fast implement is when its user stories could
 - **Session**: the workspace holds the fixture committed on `main` and, on the feature branch, the artifacts uncommitted, `.specify/feature.json` and an active run marker, as an interrupted run leaves them. The session resumes it — `/uroboros:run --reviewer=opus:<effort> --implementer=opus:<effort>`, with no idea — and runs implement to the Loop Report: implementers, gate, review, convergence, verification. The mode's own oracle answers from [`scenario/implement/truth.md`](./scenario/implement/truth.md), which holds the decisions the state file already records.
 - **Variants**: from 0.25.0, `default` (no flag: one implementer) and `parallel=3` (`--parallel=3`: one implementer per story); before it, `single` only, with no flag. They alternate run by run, 3 runs each.
 - **Measured**, per run — from the transcript (a subagent starts with the call that launched it and ends that plus the duration its notification reports): implement's wall-clock (first implementer's start → the session's last turn), the implementers' span (first start → last end), implementer dispatches, the most implementers running at once, implementer minutes added up and their tokens; from the Agent SDK, the session's cost, duration and tokens; after the session, the gate, every task checked, 14 hidden tests ([`scenario/implement/hidden-tests/`](./scenario/implement/hidden-tests/), a group per story) and the `### Waves` section of `loop-state.md`. `summary.md` shows each measure per variant as the median and every run, beside the previous version's variants.
+- **From uroboros 1.0.0** (eval v3) the same feature is a `goal.md` of fourteen criteria and a reviewed `plan.md` whose Work order has four groups — the first routes and publishes the three actions, the other three need only it and share no file ([`scenario/implement/feature-goal/`](./scenario/implement/feature-goal/)). The workspace is a large run interrupted once its plan was `CLEAN`, before the first implementer: the artifacts under `.uroboros/order-lifecycle/`, what the user typed inside `.git`, and the marker of a session that is gone. With no task list, a run is whole when its marker closed as complete. The variants, the measures and the hidden tests are the same.
 - Versioned apart (`IMPLEMENT_EVAL_VERSION`). Versions before 0.24.0 record the mode as not applicable. A run without `--modes` leaves it out: it takes about 1.5 h for one version with two variants.
 
 ## Run it
@@ -82,9 +109,11 @@ Requirements: Node.js 24+, Git, and Claude Code signed in (the Agent SDK uses th
 npm install
 (cd fixture && npm ci)                                # the fixture's own dependencies: every workspace copies them
 npm test                                              # the harness's own checks (no model calls)
-npm run testbed -- --uroboros ../uroboros             # a local checkout, e.g. before a release (every mode but implement)
+npm run testbed -- --uroboros ../uroboros             # a local checkout, e.g. before a release (every mode but implement and parts)
 npm run testbed -- --uroboros v0.13.0                 # a published tag
 npm run testbed -- --uroboros ../uroboros --modes small  # the small eval alone, ~10 min (uroboros 1.0.0+)
+npm run testbed -- --uroboros ../uroboros --modes medium,resume  # the medium and resume evals, ~20 and ~10 min (1.0.0+)
+npm run testbed -- --uroboros ../uroboros --modes parts  # the parts eval alone (1.0.0+)
 npm run testbed -- --uroboros v0.32.0 --modes compat,goal  # two modes that exist before 1.0.0 only
 npm run testbed -- --uroboros ../uroboros --modes verify  # the verifier eval alone, ~20 min
 npm run testbed -- --uroboros ../uroboros --modes review  # the reviewer eval alone
