@@ -31,7 +31,7 @@ const featureSource = (version: string): string => join(REVIEW_DIR, goalForm(ver
 /** The first uroboros version whose step-B prompt this eval reproduces (ROUND, FOLDS, STANDING_DECISIONS, model guides). */
 export const FIRST_VERSION = '0.16.0';
 /** The first version whose step-B protocol this eval does not reproduce yet: extend `stepBPrompt` before measuring it. 0.29.0 passes `EARLIER_FEATURES` in place of `STANDING_DECISIONS`, only when the project has earlier features, and this eval's workspace has none, so its prompt is unchanged. 0.30.0 leaves step B as it was: its parts protocol starts other sessions and does not touch a review. 0.31.0 adds `REVIEW_RULES` and the state file's `JUDGING SOURCES` and `REVIEW RULES` (`JUDGING_FROM`). */
-export const UNKNOWN_FROM = '1.1.0';
+export const UNKNOWN_FROM = '1.2.0';
 /** From this version the state file carries what the implementer declared as not asked for (`### Unrequested (declared)`), and a dispatch names one agent per role with the effort on the call (`agentCall`); step B's inputs are unchanged. */
 export const UNREQUESTED_FROM = '0.32.0';
 const UNREQUESTED = '\n### Unrequested (declared)\n\n- round 1: none\n';
