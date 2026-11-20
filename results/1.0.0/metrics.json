@@ -1,0 +1,621 @@
+{
+  "label": "1.0.0",
+  "scenarioVersion": 9,
+  "verifyEvalVersion": 4,
+  "reviewEvalVersion": 4,
+  "implementEvalVersion": 3,
+  "smallEvalVersion": 1,
+  "mediumEvalVersion": 1,
+  "resumeEvalVersion": 1,
+  "partsEvalVersion": 1,
+  "uroboros": {
+    "requested": "..\\uroboros",
+    "version": "1.0.0",
+    "commit": "f2989aeab8c8ec4740d143dae2b95e3dd724c2c2",
+    "dirty": false,
+    "label": "1.0.0"
+  },
+  "profile": {
+    "alias": "opus",
+    "modelId": "claude-opus-5-5",
+    "effort": "medium",
+    "claudeCodeVersion": "2.1.327"
+  },
+  "sdkVersion": "0.3.327",
+  "startedAt": "2026-11-20T07:33:19.867Z",
+  "modes": [
+    {
+      "mode": "medium",
+      "startedAt": "2026-11-20T01:21:48.800Z",
+      "harnessCostUsd": 0.175015,
+      "questionsAsked": 10,
+      "durationMs": 1101983,
+      "costUsd": 4.4661276,
+      "tokens": {
+        "input": 186,
+        "output": 64994,
+        "cacheRead": 5372093,
+        "cacheCreation": 324896
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "goal.md exists": true,
+          "loop-state.md exists": true,
+          "size recorded": true,
+          "marker closed as complete": true,
+          "feature branch created": true,
+          "gate green": true,
+          "loop report produced": true,
+          "the idea as typed is in no project file": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 4,
+        "total": 4,
+        "groups": {
+          "medium: the maximum price filter": {
+            "passed": 4,
+            "total": 4
+          }
+        }
+      },
+      "verifier": {
+        "rounds": [
+          {
+            "pass": 6,
+            "fail": 0,
+            "notRun": 0
+          }
+        ],
+        "caught": false
+      },
+      "flow": {
+        "size": "medium",
+        "dispatches": {
+          "implementer": 1,
+          "reviewer": 2,
+          "refuter": 4,
+          "verifier": 1
+        },
+        "reviewPhases": [
+          "goal",
+          "implement"
+        ],
+        "goalReviewedBeforeCode": true,
+        "planWritten": false,
+        "privateRecordInGit": true
+      },
+      "mediumEvalVersion": 1
+    },
+    {
+      "mode": "resume",
+      "startedAt": "2026-11-20T01:49:17.250Z",
+      "harnessCostUsd": 0.009722999999999999,
+      "questionsAsked": 1,
+      "durationMs": 443411,
+      "costUsd": 1.6786089999999996,
+      "tokens": {
+        "input": 78,
+        "output": 20800,
+        "cacheRead": 1944425,
+        "cacheCreation": 131006
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "session ended without error": true,
+          "goal.md exists": true,
+          "loop-state.md exists": true,
+          "size recorded": true,
+          "marker closed as complete": true,
+          "feature branch created": true,
+          "gate green": true,
+          "loop report produced": true,
+          "the idea as typed is in no project file": true,
+          "the first session was cut with its implementer running": true,
+          "the resume took the marker over": true,
+          "the resume sent the lost implementer dispatch again": true,
+          "the resume left goal.md as it was": true,
+          "the resume asked at most whether to take the run over": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "hidden": {
+        "passed": 2,
+        "total": 2,
+        "groups": {
+          "small: the startup message": {
+            "passed": 2,
+            "total": 2
+          }
+        }
+      },
+      "flow": {
+        "size": "small",
+        "dispatches": {
+          "implementer": 1,
+          "reviewer": 1,
+          "refuter": 0,
+          "verifier": 1
+        },
+        "reviewPhases": [
+          "implement"
+        ],
+        "goalReviewedBeforeCode": false,
+        "planWritten": false,
+        "privateRecordInGit": true
+      },
+      "resumeEval": {
+        "version": 1,
+        "interrupted": true,
+        "before": {
+          "implementer": 1,
+          "reviewer": 0,
+          "refuter": 0,
+          "verifier": 0
+        },
+        "after": {
+          "implementer": 1,
+          "reviewer": 1,
+          "refuter": 0,
+          "verifier": 1
+        },
+        "markerTakenOver": true,
+        "goalUnchanged": true,
+        "questionsOnResume": 0,
+        "firstCostUsd": 0,
+        "firstDurationMs": 130801
+      }
+    },
+    {
+      "mode": "parts",
+      "startedAt": "2026-11-20T07:33:20.199Z",
+      "harnessCostUsd": 0.0666336,
+      "questionsAsked": 8,
+      "durationMs": 778451,
+      "costUsd": 5.957625200000001,
+      "tokens": {
+        "input": 286,
+        "output": 86966,
+        "cacheRead": 6841551,
+        "cacheCreation": 435630
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "no session error": true,
+          "the idea was split and a part started in its own worktree": true,
+          "the main session built one feature, and only that one": true,
+          "every part closed its run as complete": true,
+          "every part built the other feature, and only that one": true,
+          "the main session closed its run as complete": true,
+          "the main gate is green": true,
+          "the main session reported once, naming every part": true,
+          "every part keeps its own record of what the user typed in the shared .git": true,
+          "the idea as typed is in no project file": true
+        }
+      },
+      "gate": {
+        "test": true,
+        "typecheck": true,
+        "lint": true
+      },
+      "flow": {
+        "dispatches": {
+          "implementer": 1,
+          "reviewer": 3,
+          "refuter": 3,
+          "verifier": 1
+        },
+        "reviewPhases": [
+          "goal",
+          "goal",
+          "implement"
+        ],
+        "goalReviewedBeforeCode": true,
+        "planWritten": false,
+        "privateRecordInGit": true
+      },
+      "partsEval": {
+        "version": 1,
+        "split": true,
+        "parts": [
+          {
+            "slug": "startup-message",
+            "worktree": "C:\\uro-testbed-work\\parts-P1ZnE5\\.claude\\worktrees\\startup-message",
+            "markerStatus": "complete",
+            "dependencies": true,
+            "gate": {
+              "test": true,
+              "typecheck": true,
+              "lint": true
+            },
+            "hidden": {
+              "filter": {
+                "passed": 0,
+                "total": 4,
+                "groups": {
+                  "medium: the maximum price filter": {
+                    "passed": 0,
+                    "total": 4
+                  }
+                }
+              },
+              "startup": {
+                "passed": 2,
+                "total": 2,
+                "groups": {
+                  "small: the startup message": {
+                    "passed": 2,
+                    "total": 2
+                  }
+                }
+              }
+            },
+            "flow": {
+              "size": "small",
+              "dispatches": {
+                "implementer": 1,
+                "reviewer": 1,
+                "refuter": 0,
+                "verifier": 1
+              },
+              "reviewPhases": [
+                "implement"
+              ],
+              "goalReviewedBeforeCode": false,
+              "planWritten": false,
+              "privateRecordInGit": true
+            },
+            "questions": 0,
+            "costUsd": 2.1149297999999996,
+            "durationMs": 392929,
+            "ideaInProjectFiles": false,
+            "ownPrivateRecord": true
+          }
+        ],
+        "mainQuestions": 8,
+        "mainHidden": {
+          "filter": {
+            "passed": 4,
+            "total": 4,
+            "groups": {
+              "medium: the maximum price filter": {
+                "passed": 4,
+                "total": 4
+              }
+            }
+          },
+          "startup": {
+            "passed": 0,
+            "total": 2,
+            "groups": {
+              "small: the startup message": {
+                "passed": 0,
+                "total": 2
+              }
+            }
+          }
+        },
+        "jointReport": true,
+        "jointReportLine": "done"
+      }
+    },
+    {
+      "mode": "implement",
+      "startedAt": "2026-11-20T01:58:16.032Z",
+      "harnessCostUsd": 0.1226461,
+      "questionsAsked": 7,
+      "durationMs": 4225108,
+      "costUsd": 20.617137399999997,
+      "tokens": {
+        "input": 894,
+        "output": 360727,
+        "cacheRead": 19524117,
+        "cacheCreation": 1538734
+      },
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "e2e": {
+        "pass": true,
+        "checks": {
+          "every run measured": true,
+          "an implementer ran in every run": true,
+          "gate green in every run": true,
+          "the marker closed as complete in every run": true,
+          "no session error": true
+        }
+      },
+      "implementEval": {
+        "version": 3,
+        "variants": [
+          {
+            "name": "default",
+            "flags": [],
+            "runs": [
+              {
+                "dispatches": 1,
+                "maxConcurrent": 1,
+                "implementerSumMs": 133194,
+                "implementerTokens": 44155,
+                "implementersSpanMs": 133194,
+                "implementMs": 602120,
+                "costUsd": 3.2813243999999995,
+                "durationMs": 709076,
+                "tokens": {
+                  "input": 122,
+                  "output": 57764,
+                  "cacheRead": 2895662,
+                  "cacheCreation": 242140
+                },
+                "questionsAsked": 1,
+                "gateGreen": true,
+                "everyTaskChecked": true,
+                "hidden": {
+                  "passed": 14,
+                  "total": 14,
+                  "groups": {
+                    "routes: the server publishes the three new routes": {
+                      "passed": 1,
+                      "total": 1
+                    },
+                    "US1: a buyer cancels an open order": {
+                      "passed": 5,
+                      "total": 5
+                    },
+                    "US2: a seller fulfills an open order on their listing": {
+                      "passed": 4,
+                      "total": 4
+                    },
+                    "US3: the parties of an order see its detail": {
+                      "passed": 4,
+                      "total": 4
+                    }
+                  }
+                }
+              },
+              {
+                "dispatches": 1,
+                "maxConcurrent": 1,
+                "implementerSumMs": 169484,
+                "implementerTokens": 47434,
+                "implementersSpanMs": 169484,
+                "implementMs": 583975,
+                "costUsd": 3.157011,
+                "durationMs": 715647,
+                "tokens": {
+                  "input": 130,
+                  "output": 54909,
+                  "cacheRead": 3270105,
+                  "cacheCreation": 223771
+                },
+                "questionsAsked": 2,
+                "gateGreen": true,
+                "everyTaskChecked": true,
+                "hidden": {
+                  "passed": 14,
+                  "total": 14,
+                  "groups": {
+                    "routes: the server publishes the three new routes": {
+                      "passed": 1,
+                      "total": 1
+                    },
+                    "US1: a buyer cancels an open order": {
+                      "passed": 5,
+                      "total": 5
+                    },
+                    "US2: a seller fulfills an open order on their listing": {
+                      "passed": 4,
+                      "total": 4
+                    },
+                    "US3: the parties of an order see its detail": {
+                      "passed": 4,
+                      "total": 4
+                    }
+                  }
+                },
+                "waves": "none — no --parallel flag; one implementer gets G1–G4."
+              },
+              {
+                "dispatches": 1,
+                "maxConcurrent": 1,
+                "implementerSumMs": 105326,
+                "implementerTokens": 39737,
+                "implementersSpanMs": 105326,
+                "implementMs": 469060,
+                "costUsd": 2.6332602,
+                "durationMs": 590136,
+                "tokens": {
+                  "input": 98,
+                  "output": 47168,
+                  "cacheRead": 2179126,
+                  "cacheCreation": 200117
+                },
+                "questionsAsked": 1,
+                "gateGreen": true,
+                "everyTaskChecked": true,
+                "hidden": {
+                  "passed": 14,
+                  "total": 14,
+                  "groups": {
+                    "routes: the server publishes the three new routes": {
+                      "passed": 1,
+                      "total": 1
+                    },
+                    "US1: a buyer cancels an open order": {
+                      "passed": 5,
+                      "total": 5
+                    },
+                    "US2: a seller fulfills an open order on their listing": {
+                      "passed": 4,
+                      "total": 4
+                    },
+                    "US3: the parties of an order see its detail": {
+                      "passed": 4,
+                      "total": 4
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "parallel=3",
+            "flags": [
+              "--parallel=3"
+            ],
+            "runs": [
+              {
+                "dispatches": 4,
+                "maxConcurrent": 3,
+                "implementerSumMs": 252216,
+                "implementerTokens": 119470,
+                "implementersSpanMs": 196367,
+                "implementMs": 579310,
+                "costUsd": 3.9745499999999994,
+                "durationMs": 696920,
+                "tokens": {
+                  "input": 192,
+                  "output": 68181,
+                  "cacheRead": 3890810,
+                  "cacheCreation": 299866
+                },
+                "questionsAsked": 0,
+                "gateGreen": true,
+                "everyTaskChecked": true,
+                "hidden": {
+                  "passed": 14,
+                  "total": 14,
+                  "groups": {
+                    "routes: the server publishes the three new routes": {
+                      "passed": 1,
+                      "total": 1
+                    },
+                    "US1: a buyer cancels an open order": {
+                      "passed": 5,
+                      "total": 5
+                    },
+                    "US2: a seller fulfills an open order on their listing": {
+                      "passed": 4,
+                      "total": 4
+                    },
+                    "US3: the parties of an order see its detail": {
+                      "passed": 4,
+                      "total": 4
+                    }
+                  }
+                },
+                "waves": "- Dispatch before wave 1: G1 (AC-14) — src/order-cancel.ts, src/order-fulfill.ts, src/order-detail.ts, src/app.ts, src/gateway.ts.\n- Wave 1: G2 (AC-1..AC-5; src/order-cancel.ts, test/order-cancel.test.ts), G3 (AC-6..AC-9; src/order-fulfill.ts, test/order-fulfill.test.ts), G4 (AC-10..AC-13; src/order-detail.ts, test/order-detail.test.ts).\n- Dispatch after wave 1: none."
+              },
+              {
+                "dispatches": 4,
+                "maxConcurrent": 3,
+                "implementerSumMs": 224340,
+                "implementerTokens": 117626,
+                "implementersSpanMs": 175491,
+                "implementMs": 599571,
+                "costUsd": 3.5269403999999995,
+                "durationMs": 737533,
+                "tokens": {
+                  "input": 166,
+                  "output": 58785,
+                  "cacheRead": 3327947,
+                  "cacheCreation": 278180
+                },
+                "questionsAsked": 1,
+                "gateGreen": true,
+                "everyTaskChecked": true,
+                "hidden": {
+                  "passed": 14,
+                  "total": 14,
+                  "groups": {
+                    "routes: the server publishes the three new routes": {
+                      "passed": 1,
+                      "total": 1
+                    },
+                    "US1: a buyer cancels an open order": {
+                      "passed": 5,
+                      "total": 5
+                    },
+                    "US2: a seller fulfills an open order on their listing": {
+                      "passed": 4,
+                      "total": 4
+                    },
+                    "US3: the parties of an order see its detail": {
+                      "passed": 4,
+                      "total": 4
+                    }
+                  }
+                },
+                "waves": "- Dispatch before wave 1: G1 (AC-14) — src/order-cancel.ts, src/order-fulfill.ts, src/order-detail.ts, src/app.ts, src/gateway.ts.\n- Wave 1: G2 (AC-1..AC-5: src/order-cancel.ts, test/order-cancel.test.ts) ‖ G3 (AC-6..AC-9: src/order-fulfill.ts, test/order-fulfill.test.ts) ‖ G4 (AC-10..AC-13: src/order-detail.ts, test/order-detail.test.ts).\n- Dispatch after wave 1: none."
+              },
+              {
+                "dispatches": 4,
+                "maxConcurrent": 3,
+                "implementerSumMs": 218123,
+                "implementerTokens": 127520,
+                "implementersSpanMs": 166568,
+                "implementMs": 650045,
+                "costUsd": 4.0440514,
+                "durationMs": 775796,
+                "tokens": {
+                  "input": 186,
+                  "output": 73920,
+                  "cacheRead": 3960467,
+                  "cacheCreation": 294660
+                },
+                "questionsAsked": 2,
+                "gateGreen": true,
+                "everyTaskChecked": true,
+                "hidden": {
+                  "passed": 14,
+                  "total": 14,
+                  "groups": {
+                    "routes: the server publishes the three new routes": {
+                      "passed": 1,
+                      "total": 1
+                    },
+                    "US1: a buyer cancels an open order": {
+                      "passed": 5,
+                      "total": 5
+                    },
+                    "US2: a seller fulfills an open order on their listing": {
+                      "passed": 4,
+                      "total": 4
+                    },
+                    "US3: the parties of an order see its detail": {
+                      "passed": 4,
+                      "total": 4
+                    }
+                  }
+                },
+                "waves": "- Dispatch before the wave: G1 (AC-14) — src/order-cancel.ts, src/order-fulfill.ts, src/order-detail.ts (new), src/app.ts, src/gateway.ts. Alone: the others need it.\n- Wave 1 (after G1): G2 (AC-1..AC-5: src/order-cancel.ts, test/order-cancel.test.ts) | G3 (AC-6..AC-9: src/order-fulfill.ts, test/order-fulfill.test.ts) | G4 (AC-10..AC-13: src/order-detail.ts, test/order-detail.test.ts). No shared file."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
