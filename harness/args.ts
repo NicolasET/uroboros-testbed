@@ -8,7 +8,7 @@ export interface RunArgs {
   cases?: string[];
 }
 
-const USAGE = 'usage: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat,verify,review,implement] [--cases <eval case names>]';
+const USAGE = 'usage: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,small,goal,compat,verify,review,implement] [--cases <eval case names>]';
 
 export function parseArgs(argv: string[]): RunArgs {
   let uroboros = '../uroboros';

@@ -12,11 +12,14 @@ import type { Oracle } from './oracle.ts';
 import { sumTokens, usageLimitError, type ModeResult } from './results.ts';
 import { runSession } from './session.ts';
 import { countOpen, parseVerifierProbes, parseVerifierResults, verifierReports } from './verifier.ts';
-import { agentCall, atLeast } from './versions.ts';
+import { agentCall, atLeast, SINGLE_FLOW_FROM } from './versions.ts';
 import { createWorkspace } from './workspace.ts';
 
 export const VERIFY_DIR = join(SCENARIO_DIR, 'verify');
-const FEATURE_PATH = join('specs', '001-pause-listing');
+/** Where the fixed feature sits in the workspace: a spec-kit feature before uroboros 1.0.0, a `goal.md` feature from it. */
+export const featurePath = (version: string): string => (atLeast(version, SINGLE_FLOW_FROM) ? join('.uroboros', 'pause-listing') : join('specs', '001-pause-listing'));
+/** The fixed feature's files under `scenario/verify/`: `feature/` (spec.md, quickstart.md) or `feature-goal/` (goal.md). */
+const featureSource = (version: string): string => join(VERIFY_DIR, atLeast(version, SINGLE_FLOW_FROM) ? 'feature-goal' : 'feature');
 /** From this version the verifier probes the requirements (`probes:`, `open:`) and its dispatch carries `BASE_TREE`. */
 export const PROBES_FROM = '0.20.0';
 
@@ -35,6 +38,19 @@ export interface VerifyCase {
    * names one of them is a catch. Only a verifier that probes the requirements (uroboros 0.20.0+) can make it.
    */
   expectProbe?: string[];
+  /**
+   * The same two lists for uroboros 1.0.0+, where the feature is a `goal.md` and every scenario is an acceptance criterion
+   * (`AC-<n>`): the two rules no scenario looked at before — an unknown listing id, the rank of any listing — are criteria
+   * there (`AC-10`, `AC-11`), so a scenario `fail` on them is a catch too.
+   */
+  goal?: { expectFail: string[]; expectProbe?: string[] };
+}
+
+/** The case as the measured version sees it: its `goal` lists from uroboros 1.0.0, the spec-kit ones before. */
+export function caseFor(c: VerifyCase, version: string): VerifyCase {
+  if (!atLeast(version, SINGLE_FLOW_FROM)) return c;
+  if (!c.goal) throw new Error(`verifier eval case ${c.name} has no goal.md mapping`);
+  return { ...c, expectFail: c.goal.expectFail, expectProbe: c.goal.expectProbe };
 }
 
 /** The case plants a defect: some scenario or requirement it breaks is named. */
@@ -69,16 +85,16 @@ export function readCases(): VerifyCase[] {
 }
 
 /** Lays the case's product over a fixture copy: the reference implementation, the defect, and the fixed feature artifacts. */
-export function buildCase(workspace: string, c: VerifyCase): void {
+export function buildCase(workspace: string, c: VerifyCase, version = '0.32.0'): void {
   cpSync(join(ROOT, 'harness', 'reference', 'src'), join(workspace, 'src'), { recursive: true });
   if (c.overlay) cpSync(join(VERIFY_DIR, c.overlay), workspace, { recursive: true });
-  cpSync(join(VERIFY_DIR, 'feature'), join(workspace, FEATURE_PATH), { recursive: true });
+  cpSync(featureSource(version), join(workspace, featurePath(version)), { recursive: true });
 }
 
 /** A fresh workspace with the case committed on top of the fixture, so a clean status afterwards means nothing was touched. */
-async function prepareWorkspace(c: VerifyCase): Promise<string> {
+async function prepareWorkspace(c: VerifyCase, version: string): Promise<string> {
   const workspace = await createWorkspace('verify');
-  buildCase(workspace, c);
+  buildCase(workspace, c, version);
   await execOrThrow('git', ['add', '-A'], workspace);
   await execOrThrow('git', ['commit', '--quiet', '-m', 'feature'], workspace);
   return workspace;
@@ -90,25 +106,24 @@ export function verifierAvailable(pluginDir: string): boolean {
 }
 
 /** The DECISION LOG lines of the fixed state file, so the prompt and the file say the same. */
-function decisionLog(): string {
-  const state = readFileSync(join(VERIFY_DIR, 'feature', 'loop-state.md'), 'utf8');
+function decisionLog(version: string): string {
+  const state = readFileSync(join(featureSource(version), 'loop-state.md'), 'utf8');
   return state.split(/\r?\n/).filter((line) => /^- D\d+ /.test(line)).join('\n');
 }
 
 /** The orchestrator's V1 prompt (verify protocol), handed to the main thread to dispatch verbatim. */
 export function promptFor(workspace: string, pluginDir: string, profile: RoleProfile, changedFiles: string, version: string, baseTree: string): string {
-  const feature = join(workspace, FEATURE_PATH);
+  const feature = join(workspace, featurePath(version));
   const dispatch = [
     `INSTRUCTIONS: ${join(pluginDir, 'references', 'verifier-instructions.md')}`,
-    'MODE: sdd',
-    'ROUND: 1',
-    `SCENARIOS_FROM: ${join(feature, 'spec.md')}, ${join(feature, 'quickstart.md')}`,
+    // From 1.0.0 the verifier takes no mode and reads its scenarios from goal.md (verify protocol, V1).
+    ...(atLeast(version, SINGLE_FLOW_FROM) ? ['ROUND: 1', `GOAL_FILE: ${join(feature, 'goal.md')}`] : ['MODE: sdd', 'ROUND: 1', `SCENARIOS_FROM: ${join(feature, 'spec.md')}, ${join(feature, 'quickstart.md')}`]),
     `CHANGED_FILES: ${changedFiles.split(/\r?\n/).filter(Boolean).join(', ')}`,
     ...(atLeast(version, PROBES_FROM) ? [`BASE_TREE: ${baseTree}`] : []),
     'RUN_COMMANDS: none',
     `STATE_FILE: ${join(feature, 'loop-state.md')}`,
     'DECISION LOG:',
-    decisionLog(),
+    decisionLog(version),
   ].join('\n');
   return [
     `Use the Agent tool once: ${agentCall('verifier', profile, version)}, and as its prompt exactly the text between the markers. Wait for its report, then reply with the report verbatim and nothing else. Do not run, read or change anything yourself.`,
@@ -170,11 +185,11 @@ export async function runVerifyMode(req: VerifyModeRequest): Promise<ModeResult>
   let durationMs = 0;
   let aborted: string | undefined;
 
-  for (const c of readCases().filter((x) => !req.cases || req.cases.includes(x.name))) {
+  for (const c of readCases().filter((x) => !req.cases || req.cases.includes(x.name)).map((x) => caseFor(x, req.version))) {
     const entry = { name: c.name, expectFail: hasDefect(c), runs: [] as VerifyRun[] };
     evaluation.cases.push(entry);
     for (let i = 1; i <= VERIFY_EVAL_RUNS && !aborted; i++) {
-      const workspace = await prepareWorkspace(c);
+      const workspace = await prepareWorkspace(c, req.version);
       const dir = join(req.runDir, 'verify', `${c.name}-${i}`);
       mkdirSync(dir, { recursive: true });
       console.log(`[verify] ${c.name} ${i}/${VERIFY_EVAL_RUNS} in ${workspace}`);

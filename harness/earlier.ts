@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { featureDir, readIfExists } from './artifacts.ts';
+import { featureDir, featureRoot, readIfExists } from './artifacts.ts';
 import type { Mode } from './config.ts';
 import type { AmbiguityVerdict } from './judge.ts';
 
@@ -30,8 +30,8 @@ export interface EarlierScore {
  * Decisions loop-state.md records as kept on "I don't know" (Question protocol, uroboros 0.23.0+): each distinct `D<n>`
  * on a marked line once, however often the log repeats it, plus each marked line that names none.
  */
-export function countKeptOnIdk(mode: Mode, workspace: string): number {
-  const dir = mode === 'goal' ? featureDir(workspace, '.uroboros') : featureDir(workspace, 'specs');
+export function countKeptOnIdk(mode: Mode, workspace: string, version: string): number {
+  const dir = featureDir(workspace, featureRoot(mode, version));
   const state = readIfExists(dir && join(dir, 'loop-state.md'), Number.MAX_SAFE_INTEGER);
   const marked = state.split('\n').filter((line) => /kept on\s*["“”']?I don['’]?t know/i.test(line));
   const ids = new Set(marked.flatMap((line) => line.match(/\bD\d+\b/g) ?? []));

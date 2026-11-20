@@ -23,6 +23,12 @@ const ROWS: Row[] = [
   ['reviewer detection (caught / runs)', (r) => (r.reviewerEval ? r.reviewerEval.cases.filter((c) => c.planted).map((c) => `${c.name} ${c.runs.filter((x) => x.caught).length}/${c.runs.length}`).join(' · ') : '-')],
   ['reviewer detection after the refuter (caught / runs)', (r) => (r.reviewerEval?.cases.some((c) => c.runs.some((x) => x.caughtAfterRefuter !== undefined)) ? r.reviewerEval.cases.filter((c) => c.planted).map((c) => `${c.name} ${c.runs.filter((x) => x.caughtAfterRefuter).length}/${c.runs.length}`).join(' · ') : '-')],
   ['reviewer on the clean copies', (r) => (r.reviewerEval ? reviewerOnClean(r) : '-')],
+  ['size the run recorded', (r) => r.flow?.size ?? '-'],
+  ['subagents dispatched (implementer · reviewer · refuter · verifier)', (r) => (r.flow ? [r.flow.dispatches.implementer, r.flow.dispatches.reviewer, r.flow.dispatches.refuter, r.flow.dispatches.verifier].join(' · ') : '-')],
+  ['reviews, by phase', (r) => (r.flow ? r.flow.reviewPhases.join(' → ') || 'none' : '-')],
+  ['goal.md reviewed before any code', (r) => (r.flow ? (r.flow.goalReviewedBeforeCode ? 'yes' : 'no') : '-')],
+  ['plan.md written', (r) => (r.flow ? (r.flow.planWritten ? 'yes' : 'no') : '-')],
+  ['what the user typed kept inside .git', (r) => (r.flow ? (r.flow.privateRecordInGit ? 'yes' : 'no') : '-')],
   ['gate (test/typecheck/lint)', (r) => (r.gate ? [r.gate.test, r.gate.typecheck, r.gate.lint].map((ok) => (ok ? '✓' : '✗')).join(' ') : '-')],
   ['questions asked', (r) => String(r.questionsAsked)],
   ['cost (USD, estimate)', (r) => r.costUsd.toFixed(2)],
@@ -66,6 +72,7 @@ function evalVersion(run: RunResult, result: ModeResult): number | undefined {
   if (result.mode === 'verify') return result.verifierEval?.version ?? run.verifyEvalVersion;
   if (result.mode === 'review') return result.reviewerEval?.version ?? run.reviewEvalVersion;
   if (result.mode === 'implement') return result.implementEval?.version ?? run.implementEvalVersion;
+  if (result.mode === 'small') return result.smallEvalVersion ?? run.smallEvalVersion;
   return undefined;
 }
 
@@ -78,6 +85,7 @@ function sameMeasure(older: RunResult, result: ModeResult, current: RunResult): 
   if (result.mode === 'verify') return evalVersion(older, result) === current.verifyEvalVersion;
   if (result.mode === 'review') return evalVersion(older, result) === current.reviewEvalVersion;
   if (result.mode === 'implement') return evalVersion(older, result) === current.implementEvalVersion;
+  if (result.mode === 'small') return evalVersion(older, result) === current.smallEvalVersion;
   return older.scenarioVersion === current.scenarioVersion;
 }
 
@@ -155,7 +163,7 @@ export function renderSummary(run: RunResult, previous: Map<Mode, PreviousMode>)
     '',
     `- uroboros: ${run.uroboros.requested} → ${run.uroboros.version} @ ${run.uroboros.commit.slice(0, 7)}${run.uroboros.dirty ? ' (uncommitted changes)' : ''}`,
     `- roles: ${run.profile.modelId} at \`${run.profile.effort}\` effort (the model's default) · Claude Code ${run.profile.claudeCodeVersion} · Agent SDK ${run.sdkVersion}`,
-    `- scenario: v${run.scenarioVersion}${run.verifyEvalVersion ? ` · verifier eval: v${run.verifyEvalVersion}` : ''}${run.reviewEvalVersion ? ` · reviewer eval: v${run.reviewEvalVersion}` : ''}${run.implementEvalVersion ? ` · implement eval: v${run.implementEvalVersion}` : ''} · started: ${run.startedAt}`,
+    `- scenario: v${run.scenarioVersion}${run.verifyEvalVersion ? ` · verifier eval: v${run.verifyEvalVersion}` : ''}${run.reviewEvalVersion ? ` · reviewer eval: v${run.reviewEvalVersion}` : ''}${run.implementEvalVersion ? ` · implement eval: v${run.implementEvalVersion}` : ''}${run.smallEvalVersion ? ` · small eval: v${run.smallEvalVersion}` : ''} · started: ${run.startedAt}`,
     `- compared with: ${[...byLabel].map(([label, modes]) => `${modes.join(', ')} → ${label}`).join('; ') || 'nothing yet — this is the first result'}`,
   ];
   for (const model of new Set([...previous.values()].map((p) => p.profile.modelId))) {

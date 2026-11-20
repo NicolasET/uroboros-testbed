@@ -1,9 +1,10 @@
-// Entry point: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,goal,compat,verify,review,implement]
+// Entry point: npm run testbed -- --uroboros <path|tag|branch> [--modes default,auto,small,goal,compat,verify,review,implement]
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from './args.ts';
 import { checkEndToEnd } from './checks.ts';
-import { EVAL_MODES, IMPLEMENT_EVAL_VERSION, MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, PLUGINS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, EARLIER_FEATURE, EARLIER_FEATURE_MODES, EARLIER_FEATURE_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
+import { EVAL_MODES, IMPLEMENT_EVAL_VERSION, MODES, RESULTS_DIR, REVIEW_EVAL_VERSION, PLUGINS_DIR, ROOT, RUNS_DIR, SCENARIO_DIR, SCENARIO_VERSION, SMALL_EVAL_VERSION, EARLIER_FEATURE, EARLIER_FEATURE_MODES, EARLIER_FEATURE_SEED, VERIFY_EVAL_VERSION, type Mode } from './config.ts';
+import { readFlow } from './flow.ts';
 import { runImplementMode } from './implement-eval.ts';
 import { judgeRun } from './judge.ts';
 import { modelFlags, resolveRoleProfile, type RoleProfile } from './model-profile.ts';
@@ -12,6 +13,8 @@ import { previousModes, renderSummary } from './report.ts';
 import { sumTokens, usageLimitError, type ModeResult, type RunResult } from './results.ts';
 import { runReviewMode } from './review-eval.ts';
 import { runSession } from './session.ts';
+import { runSmallMode } from './small-eval.ts';
+import { atLeast, SINGLE_FLOW_FROM } from './versions.ts';
 import { countKeptOnIdk, type EarlierScore } from './earlier.ts';
 import { resolveUroboros } from './uroboros-source.ts';
 import { runGate, runHiddenTests, runRuntimeTests } from './verify.ts';
@@ -30,6 +33,8 @@ function promptFor(mode: Mode, profile: RoleProfile, idea: string): string {
       return `/uroboros:run --goal ${models} ${idea}`;
     case 'compat':
       return '/uroboros:compat';
+    case 'small':
+      throw new Error('the small mode builds its own prompt (small-eval.ts)');
     case 'verify':
       throw new Error('the verify mode builds its own prompts (verify-eval.ts)');
     case 'review':
@@ -48,7 +53,7 @@ function readExchanges(logPath: string, mode: Mode): OracleExchange[] {
     .filter((x) => x.mode === mode);
 }
 
-async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: RoleProfile, oracle: Oracle, oracleLog: string): Promise<ModeResult> {
+async function runMode(mode: Mode, runDir: string, pluginDir: string, version: string, profile: RoleProfile, oracle: Oracle, oracleLog: string): Promise<ModeResult> {
   const startedAt = new Date().toISOString();
   const idea = readFileSync(join(SCENARIO_DIR, 'idea.md'), 'utf8').trim();
   const seeded = EARLIER_FEATURE_MODES.includes(mode);
@@ -91,15 +96,15 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
   const hidden = buildsCode ? await measure('hidden tests', () => runHiddenTests(workspace)) : undefined;
   const runtime = buildsCode ? await measure('runtime tests', () => runRuntimeTests(workspace)) : undefined;
   const verifier = buildsCode ? await measure('verifier reports', async () => scoreVerifier(join(runDir, mode, 'transcript.jsonl'))) : undefined;
-  const e2e = (await measure('end-to-end checks', () => checkEndToEnd({ mode, workspace, session, questionsAsked, gate }))) ?? {
+  const e2e = (await measure('end-to-end checks', () => checkEndToEnd({ mode, version, idea, workspace, session, questionsAsked, gate }))) ?? {
     pass: false,
     checks: { 'checks could run': false },
   };
-  const judged = buildsCode ? await measure('judge', () => judgeRun(mode, workspace, readExchanges(oracleLog, mode))) : undefined;
+  const judged = buildsCode ? await measure('judge', () => judgeRun(mode, workspace, readExchanges(oracleLog, mode), version)) : undefined;
   const ambiguity = judged?.ambiguity;
   const earlier: EarlierScore | undefined =
     seeded && buildsCode
-      ? { changed: judged?.changed, kept: judged?.kept, idk: judged && { lists: judged.idkLists, kept: countKeptOnIdk(mode, workspace) } }
+      ? { changed: judged?.changed, kept: judged?.kept, idk: judged && { lists: judged.idkLists, kept: countKeptOnIdk(mode, workspace, version) } }
       : undefined;
 
   return {
@@ -118,6 +123,7 @@ async function runMode(mode: Mode, runDir: string, pluginDir: string, profile: R
     verifier,
     ambiguity,
     earlier,
+    flow: buildsCode && atLeast(version, SINGLE_FLOW_FROM) ? readFlow(workspace, join(runDir, mode, 'transcript.jsonl')) : undefined,
     error: failures.length ? failures.join(' | ') : undefined,
   };
 }
@@ -150,7 +156,7 @@ async function main(): Promise<void> {
   const sdkManifest = join(ROOT, 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'package.json');
   const sdkVersion = (JSON.parse(readFileSync(sdkManifest, 'utf8')) as { version: string }).version;
   const { dir: _dir, ...source } = uroboros;
-  const run: RunResult = { label: uroboros.label, scenarioVersion: SCENARIO_VERSION, verifyEvalVersion: VERIFY_EVAL_VERSION, reviewEvalVersion: REVIEW_EVAL_VERSION, implementEvalVersion: IMPLEMENT_EVAL_VERSION, uroboros: source, profile, sdkVersion, startedAt: new Date().toISOString(), modes: [] };
+  const run: RunResult = { label: uroboros.label, scenarioVersion: SCENARIO_VERSION, verifyEvalVersion: VERIFY_EVAL_VERSION, reviewEvalVersion: REVIEW_EVAL_VERSION, implementEvalVersion: IMPLEMENT_EVAL_VERSION, smallEvalVersion: SMALL_EVAL_VERSION, uroboros: source, profile, sdkVersion, startedAt: new Date().toISOString(), modes: [] };
 
   // A pilot (--cases) measures part of an eval: it never lands in results/.
   const resultDir = args.cases ? join(runDir, 'pilot-result') : join(RESULTS_DIR, uroboros.label);
@@ -162,15 +168,24 @@ async function main(): Promise<void> {
   const kept = (m: ModeResult) => !args.modes.includes(m.mode) && (earlier?.scenarioVersion === SCENARIO_VERSION || EVAL_MODES.includes(m.mode));
   if (earlier) run.modes = earlier.modes.filter(kept);
   const previous = previousModes(run);
+  // From 1.0.0 uroboros has one flow: `--goal` selects nothing and the compat skill is gone, so those two modes measure nothing.
+  const retired = (mode: Mode): ModeResult | undefined =>
+    (mode === 'goal' || mode === 'compat') && atLeast(uroboros.version, SINGLE_FLOW_FROM)
+      ? { mode, startedAt: new Date().toISOString(), durationMs: 0, costUsd: 0, harnessCostUsd: 0, tokens: sumTokens({}), models: [], questionsAsked: 0, e2e: { pass: true, checks: {} },
+          notApplicable: mode === 'goal' ? `from uroboros ${SINGLE_FLOW_FROM} every run is the flow \`--goal\` selected: the default mode measures it` : `uroboros ${SINGLE_FLOW_FROM} removed the compat skill with spec-kit` }
+      : undefined;
   for (const mode of args.modes) {
     const result =
-      mode === 'verify'
+      retired(mode) ??
+      (mode === 'verify'
         ? await runVerifyMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle, cases: args.cases })
         : mode === 'review'
           ? await runReviewMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracle, cases: args.cases })
           : mode === 'implement'
             ? await runImplementMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracleLog })
-            : await runMode(mode, runDir, uroboros.dir, profile, oracle, oracleLog);
+            : mode === 'small'
+              ? await runSmallMode({ runDir, pluginDir: uroboros.dir, version: uroboros.version, profile, oracleLog })
+              : await runMode(mode, runDir, uroboros.dir, uroboros.version, profile, oracle, oracleLog));
     run.modes.push(result);
     run.modes.sort((a, b) => MODES.indexOf(a.mode) - MODES.indexOf(b.mode));
     // Written after every mode so an interrupted run keeps what it measured.

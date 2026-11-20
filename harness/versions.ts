@@ -8,6 +8,9 @@ export function compareVersions(a: string, b: string): number {
 
 export const atLeast = (version: string, min: string): boolean => compareVersions(version, min) >= 0;
 
+/** From this uroboros version every run is one flow: no spec-kit pipeline, no `--goal` mode, no compat skill; artifacts live under `.uroboros/`. */
+export const SINGLE_FLOW_FROM = '1.0.0';
+
 /** From this uroboros version each role is one agent and the effort travels on the Agent call; before it, one agent variant per effort. */
 export const ONE_AGENT_FROM = '0.32.0';
 

@@ -29,13 +29,13 @@ export const EARLIER_FEATURE_MODES: readonly Mode[] = ['default', 'auto', 'goal'
 export const EARLIER_CHANGED = ['D1', 'D2'] as const;
 export const EARLIER_KEPT = ['D3', 'D5'] as const;
 
-/** The verifier eval (`verify` mode, `scenario/verify/`) is versioned apart: it changes nothing the other modes measure. Bump it whenever `scenario/verify/`, its scoring or the fixture (which its workspaces copy) changes; the `verify` row is compared only within one eval version. v2: FR-006 (an unknown listing id is refused with 404) and the `edge` case, whose defect breaks it where no scenario looks; probe failures are scored (uroboros 0.20.0+). v3: the `rank` case, whose defect breaks FR-004 (pause and resume never change `rankScore`) only for a listing published with rank 0 — every seeded listing is ranked, so no scenario and no single-listing probe of a seed shows it; a rule over every listing does (property probes, uroboros 0.31.0). */
-export const VERIFY_EVAL_VERSION = 3;
+/** The verifier eval (`verify` mode, `scenario/verify/`) is versioned apart: it changes nothing the other modes measure. Bump it whenever `scenario/verify/`, its scoring or the fixture (which its workspaces copy) changes; the `verify` row is compared only within one eval version. v2: FR-006 (an unknown listing id is refused with 404) and the `edge` case, whose defect breaks it where no scenario looks; probe failures are scored (uroboros 0.20.0+). v3: the `rank` case, whose defect breaks FR-004 (pause and resume never change `rankScore`) only for a listing published with rank 0 — every seeded listing is ranked, so no scenario and no single-listing probe of a seed shows it; a rule over every listing does (property probes, uroboros 0.31.0). v4: the fixed feature also exists as a `goal.md` (`scenario/verify/feature-goal/`), which uroboros 1.0.0+ is measured on: its scenarios are the acceptance criteria `AC-1`…`AC-11`, the two rules no scenario looked at before (an unknown listing id, the rank of any listing) among them, and each case names the criteria its defect breaks (`goal` in `cases.json`). Earlier versions keep the spec-kit feature and their ids. */
+export const VERIFY_EVAL_VERSION = 4;
 /** Runs per verifier eval case: the verifier is not deterministic, so each case reports a rate. */
 export const VERIFY_EVAL_RUNS = 3;
 
-/** The reviewer eval (`review` mode, `scenario/review/`) is versioned apart, like the verifier eval. Bump it whenever `scenario/review/`, its prompts, its scoring or the fixture change; the `review` row is compared only within one eval version. v2: two more cases meant to show only in the run's diff, `deleted` (a removed check and its removed test) and `ranking` (an unrequested change to shared code) — 0.16.1 still caught them, from its diff stat and changed-file list — and sessions that cannot read outside their workspace (`harness/sandbox.ts`). v3: from uroboros 0.29.0 each report also goes through step C's refuter and is scored after it (an item refuted as unreachable, no-outcome or not-this-run is lost; the judge names the items that identify the defect); the `rule` case, whose defect breaks only the project's `REVIEW.md`, and its compliant twin `rule-clean`. */
-export const REVIEW_EVAL_VERSION = 3;
+/** The reviewer eval (`review` mode, `scenario/review/`) is versioned apart, like the verifier eval. Bump it whenever `scenario/review/`, its prompts, its scoring or the fixture change; the `review` row is compared only within one eval version. v2: two more cases meant to show only in the run's diff, `deleted` (a removed check and its removed test) and `ranking` (an unrequested change to shared code) — 0.16.1 still caught them, from its diff stat and changed-file list — and sessions that cannot read outside their workspace (`harness/sandbox.ts`). v3: from uroboros 0.29.0 each report also goes through step C's refuter and is scored after it (an item refuted as unreachable, no-outcome or not-this-run is lost; the judge names the items that identify the defect); the `rule` case, whose defect breaks only the project's `REVIEW.md`, and its compliant twin `rule-clean`. v4: the fixed feature also exists as a `goal.md` with what the user typed kept inside `.git` (`scenario/review/feature-goal/`), which uroboros 1.0.0+ is measured on with the step B of its loop protocol (`PRIVATE_RECORD`, `GOAL_FILE`); it has no plan and no task list, so a change nobody asked for is judged against the criteria and the constraint that nothing else changes. Earlier versions keep the spec-kit feature. */
+export const REVIEW_EVAL_VERSION = 4;
 /** Runs per reviewer eval case. */
 export const REVIEW_EVAL_RUNS = 3;
 
@@ -43,6 +43,9 @@ export const REVIEW_EVAL_RUNS = 3;
 export const IMPLEMENT_EVAL_VERSION = 2;
 /** Runs per implement eval variant: durations vary from run to run, so each variant reports every run and their median. */
 export const IMPLEMENT_EVAL_RUNS = 3;
+
+/** The small eval (`small` mode, `scenario/small/`) is versioned apart, like the other evals: its own idea, truth and hidden tests on the same fixture. Bump it whenever `scenario/small/`, its measures or the fixture change; the `small` row is compared only within one eval version. */
+export const SMALL_EVAL_VERSION = 1;
 
 export const UROBOROS_REPO_URL = 'https://github.com/NicolasET/uroboros.git';
 
@@ -52,10 +55,10 @@ export const ROLE_MODEL_ALIAS = 'opus';
 export const ORACLE_MODEL = 'claude-haiku-4-5-20251001';
 export const JUDGE_MODEL = 'claude-sonnet-5';
 
-export const MODES = ['default', 'auto', 'goal', 'compat', 'verify', 'review', 'implement'] as const;
+export const MODES = ['default', 'auto', 'small', 'goal', 'compat', 'verify', 'review', 'implement'] as const;
 export type Mode = (typeof MODES)[number];
 /** The modes versioned by their own eval version instead of the scenario's. */
-export const EVAL_MODES: readonly Mode[] = ['verify', 'review', 'implement'];
+export const EVAL_MODES: readonly Mode[] = ['small', 'verify', 'review', 'implement'];
 /** The modes a run without `--modes` measures: every mode but the implement eval, which runs only when asked for (~1.5 h per version). */
 export const DEFAULT_MODES: readonly Mode[] = MODES.filter((m) => m !== 'implement');
 

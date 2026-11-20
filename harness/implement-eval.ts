@@ -16,7 +16,7 @@ import { Oracle } from './oracle.ts';
 import { sumTokens, usageLimitError, type ModeResult } from './results.ts';
 import { runSession, type SessionOutcome } from './session.ts';
 import { runGate, runHiddenTestFile, type HiddenTestsResult } from './verify.ts';
-import { atLeast } from './versions.ts';
+import { atLeast, SINGLE_FLOW_FROM } from './versions.ts';
 import { createWorkspace } from './workspace.ts';
 
 export const IMPLEMENT_DIR = join(SCENARIO_DIR, 'implement');
@@ -148,6 +148,10 @@ interface ImplementModeRequest {
 export async function runImplementMode(req: ImplementModeRequest): Promise<ModeResult> {
   const startedAt = new Date().toISOString();
   const base = { mode: 'implement' as const, startedAt, harnessCostUsd: 0, questionsAsked: 0 };
+  // Its fixed feature is a spec-kit one (spec.md, plan.md, tasks.md, FR and US ids): from 1.0.0 the roles read goal.md and plan.md instead.
+  if (atLeast(req.version, SINGLE_FLOW_FROM)) {
+    return { ...base, durationMs: 0, costUsd: 0, tokens: sumTokens({}), models: [], e2e: { pass: true, checks: {} }, notApplicable: `the implement eval's fixed feature is written as a spec-kit feature; its goal.md form for uroboros ${SINGLE_FLOW_FROM} does not exist yet` };
+  }
   if (!atLeast(req.version, FIRST_VERSION)) {
     return { ...base, durationMs: 0, costUsd: 0, tokens: sumTokens({}), models: [], e2e: { pass: true, checks: {} }, notApplicable: `the implement eval's state file has the shape of uroboros ${FIRST_VERSION}` };
   }

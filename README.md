@@ -4,7 +4,7 @@ A fixed, repeatable end-to-end test for the [uroboros](https://github.com/Nicola
 
 ## What one run measures
 
-For each mode — the default pipeline, `--auto`, `--goal`, `/uroboros:compat`, and the verifier and reviewer evals (`verify`, `review`) — plus, only when asked for with `--modes implement`, the implement eval:
+For each mode — the default pipeline, `--auto`, `--goal`, `/uroboros:compat`, and the verifier and reviewer evals (`verify`, `review`) — plus, only when asked for with `--modes implement`, the implement eval. From uroboros 1.0.0 the plugin has one flow and no spec-kit; [what changes in the measure](#uroboros-100-and-later) is below:
 
 | Measure | How |
 |---|---|
@@ -43,6 +43,27 @@ The same idea for uroboros's implement reviewer: whether its report names a defe
 - **Scored**, over 3 runs per case: **detection** — the pinned judge finds a finding or risk that names the planted defect (a `CLEAN` report never counts, even if it mentions the defect in passing); on the clean copy, how many runs returned `CLEAN` and how many findings and risks the others raised; and whether the working tree was left untouched. Eval v3 also scores, from uroboros 0.29.0, what survives step C: a second session dispatches the refuter with the orchestrator's step-C prompt (`refuterPrompt`) on every item but `proof` and `derived_from` findings, and an item it refutes as `unreachable`, `no-outcome` or `not-this-run` is lost (`decided` and `discoverable` ones are folded, so they still act). **Detection after the refuter** needs an item the judge names as identifying the defect to survive; on the clean copies, how many items survive. Earlier versions show that column empty: their refuter inputs differ and are not reproduced.
 - Versioned apart (`REVIEW_EVAL_VERSION`). Versions before 0.16.0 record the mode as not applicable. Eval v2 runs inside the fence (see Isolation); some v1 runs on published versions read the original fixture. A result keeps its eval modes when a later run of the same uroboros version measures other modes under a new scenario version; each eval mode is compared by the eval version it recorded.
 
+## uroboros 1.0.0 and later
+
+From 1.0.0 uroboros has one flow: no spec-kit pipeline, no `--goal` mode, no compat skill, and the size of the idea (small, medium or large) sets how much of the flow runs. The harness reads the measured version and adapts; nothing changes for an earlier version.
+
+- **`default` and `auto`** run the same idea on the same fixture and scenario, so their rows compare with an earlier version's: ambiguities, the earlier feature, hidden and runtime tests, questions, cost, time. The end-to-end checks look for `goal.md` and `loop-state.md` under `.uroboros/`, a recorded size, a marker closed as complete, and that the idea as typed is in no project file (1.0.0 keeps what the user typed inside `.git`).
+- **New rows** for every 1.0.0+ run: the size it recorded, the subagents it dispatched by role, the phase of each review, whether `goal.md` was reviewed before any code, whether a `plan.md` was written, and whether what the user typed is inside `.git`.
+- **`goal` and `compat`** are recorded as not applicable: `--goal` selects nothing and the compat skill is gone.
+- **`verify` and `review`** measure the same product and the same planted defects on the feature written as a `goal.md` (`scenario/verify/feature-goal/`, `scenario/review/feature-goal/`), with the dispatch of the 1.0.0 protocols. Their eval versions (v4) say so; a 1.0.0+ row is not comparable with an earlier version's.
+- **`implement`** is recorded as not applicable: its fixed feature and the state file it resumes are spec-kit ones, not yet written for 1.0.0.
+- **The fixture keeps spec-kit 1.1.0 installed.** Earlier versions need it; 1.0.0 ignores it, so its runs also measure a project that comes from spec-kit.
+
+## The small eval (`small` mode)
+
+The pipeline modes' idea adds a state to stored data, so it is never small. The `small` mode runs one idea that is small by every signal — the text the server prints when it starts — in default mode, with its own truth for the oracle ([`scenario/small/`](./scenario/small/)), and measures how much of the loop a small change goes through:
+
+- the size the run recorded, the subagents it dispatched, and whether `goal.md` was reviewed on its own (a small run reviews it with the code);
+- its questions, cost and time;
+- two hidden tests that start the real server and read the line it prints.
+
+Versioned apart (`SMALL_EVAL_VERSION`). Versions before 1.0.0 record the mode as not applicable.
+
 ## The implement eval (`implement` mode)
 
 The pipeline modes cannot show how fast implement is when its user stories could be built at the same time: their `tasks.md` puts every story's tests in one file, so uroboros 0.25.0, which under `--parallel=N` runs one implementer per story when the stories share no file, runs one implementer there, as earlier versions do. The `implement` mode measures the implement phase alone, on a feature whose stories share no file:
@@ -63,7 +84,8 @@ npm install
 npm test                                              # the harness's own checks (no model calls)
 npm run testbed -- --uroboros ../uroboros             # a local checkout, e.g. before a release (every mode but implement)
 npm run testbed -- --uroboros v0.13.0                 # a published tag
-npm run testbed -- --uroboros ../uroboros --modes compat,goal
+npm run testbed -- --uroboros ../uroboros --modes small  # the small eval alone, ~10 min (uroboros 1.0.0+)
+npm run testbed -- --uroboros v0.32.0 --modes compat,goal  # two modes that exist before 1.0.0 only
 npm run testbed -- --uroboros ../uroboros --modes verify  # the verifier eval alone, ~20 min
 npm run testbed -- --uroboros ../uroboros --modes review  # the reviewer eval alone
 npm run testbed -- --uroboros ../uroboros --modes implement  # the implement eval alone

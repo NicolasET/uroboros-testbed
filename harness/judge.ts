@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { featureDir, readIfExists } from './artifacts.ts';
+import { featureDir, featureRoot, readIfExists } from './artifacts.ts';
 import { EARLIER_CHANGED, EARLIER_FEATURE, EARLIER_FEATURE_MODES, EARLIER_FEATURE_SEED, EARLIER_KEPT, JUDGE_MODEL, SCENARIO_DIR, type Mode } from './config.ts';
 import type { ChangedScore, KeptVerdict } from './earlier.ts';
 import type { OracleExchange } from './oracle.ts';
@@ -56,17 +56,18 @@ const IDK_LIST_INSTRUCTIONS = `Finally, list in "idkLists" the number of every q
  * idea changes — as asked, recorded, silent or not addressed, checks whether a decision the idea leaves alone was
  * asked again, and finds the lists answered "I don't know".
  */
-export async function judgeRun(mode: Mode, workspace: string, exchanges: OracleExchange[]): Promise<JudgeResult> {
+export async function judgeRun(mode: Mode, workspace: string, exchanges: OracleExchange[], version: string): Promise<JudgeResult> {
   const truth = readFileSync(join(SCENARIO_DIR, 'truth.md'), 'utf8');
   const planted = truth.slice(truth.indexOf('## Planted ambiguities'), truth.indexOf('## Other facts'));
   const seeded = EARLIER_FEATURE_MODES.includes(mode);
-  const dir = mode === 'goal' ? featureDir(workspace, '.uroboros') : featureDir(workspace, 'specs');
+  const root = featureRoot(mode, version);
+  const dir = featureDir(workspace, root);
   const artifacts =
-    mode === 'goal'
-      ? `goal.md:\n${readIfExists(dir && join(dir, 'goal.md'))}`
+    root === '.uroboros'
+      ? `goal.md:\n${readIfExists(dir && join(dir, 'goal.md'))}\n\nplan.md:\n${readIfExists(dir && join(dir, 'plan.md'), 30_000)}`
       : `spec.md:\n${readIfExists(dir && join(dir, 'spec.md'))}\n\nplan.md:\n${readIfExists(dir && join(dir, 'plan.md'), 30_000)}`;
   const questions = exchanges.flatMap((x) =>
-    x.questions.map((q) => ({ header: q.header, question: q.question, options: q.options.map((o) => o.label), answer: x.answers[q.question] })),
+    x.questions.map((q) => ({ header: q.header, question: q.question, options: q.options.map((o) => (o.description ? `${o.label} — ${o.description}` : o.label)), answer: x.answers[q.question] })),
   );
   const numbered = questions.map((q, i) => ({ number: i + 1, ...q }));
 

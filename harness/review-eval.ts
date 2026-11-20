@@ -19,15 +19,19 @@ import { snapshot, writeRunDiff } from './snapshot.ts';
 import { askStructured } from './structured.ts';
 import { subagentReports } from './transcript.ts';
 import { runGate, type GateResult } from './verify.ts';
-import { agentCall, atLeast } from './versions.ts';
+import { agentCall, atLeast, SINGLE_FLOW_FROM } from './versions.ts';
 import { createWorkspace } from './workspace.ts';
 
 export const REVIEW_DIR = join(SCENARIO_DIR, 'review');
-const FEATURE_PATH = join('specs', '001-pause-listing');
+/** From uroboros 1.0.0 the fixed feature is a goal.md feature under .uroboros/; before it, a spec-kit one under specs/. */
+export const goalForm = (version: string): boolean => atLeast(version, SINGLE_FLOW_FROM);
+export const featurePath = (version: string): string => (goalForm(version) ? join('.uroboros', 'pause-listing') : join('specs', '001-pause-listing'));
+/** The fixed feature's files under scenario/review/: feature/ (spec, plan, tasks) or feature-goal/ (goal.md, and what the user typed). */
+const featureSource = (version: string): string => join(REVIEW_DIR, goalForm(version) ? 'feature-goal' : 'feature');
 /** The first uroboros version whose step-B prompt this eval reproduces (ROUND, FOLDS, STANDING_DECISIONS, model guides). */
 export const FIRST_VERSION = '0.16.0';
 /** The first version whose step-B protocol this eval does not reproduce yet: extend `stepBPrompt` before measuring it. 0.29.0 passes `EARLIER_FEATURES` in place of `STANDING_DECISIONS`, only when the project has earlier features, and this eval's workspace has none, so its prompt is unchanged. 0.30.0 leaves step B as it was: its parts protocol starts other sessions and does not touch a review. 0.31.0 adds `REVIEW_RULES` and the state file's `JUDGING SOURCES` and `REVIEW RULES` (`JUDGING_FROM`). */
-export const UNKNOWN_FROM = '0.33.0';
+export const UNKNOWN_FROM = '1.1.0';
 /** From this version the state file carries what the implementer declared as not asked for (`### Unrequested (declared)`), and a dispatch names one agent per role with the effort on the call (`agentCall`); step B's inputs are unchanged. */
 export const UNREQUESTED_FROM = '0.32.0';
 const UNREQUESTED = '\n### Unrequested (declared)\n\n- round 1: none\n';
@@ -48,6 +52,9 @@ const RED_FIRST = '\n### Red first\n\n- round 1: not captured — the tests in t
 /** From this version the state file records implement's plan of waves; step B itself is unchanged. One implementer built the fixed feature. */
 export const WAVES_FROM = '0.25.0';
 const WAVES = '\n### Waves\n\n- none — one dispatch got every task\n';
+const WAVES_GOAL = '\n### Waves\n\n- none — one dispatch got every criterion\n';
+/** The judging sources uroboros 1.0.0 records: no spec-kit path. */
+const JUDGING_SOURCES_GOAL = "- JUDGING SOURCES: .uroboros/ specs/ ':(glob)**/REVIEW.md' ':(glob)**/CLAUDE.md' ':(glob)**/AGENTS.md' ':(exclude).uroboros/active-run.json'";
 /** The surfaces the fixed feature's intake would have recorded: every one of them is in scope. */
 const SURFACES = 'SURFACES: HTTP API only — POST /listings/:id/pause and /resume (in scope); GET /listings search (in scope: paused listings hidden); GET /listings/:id (in scope: shows the status); POST /listings/:id/orders (in scope: refused while paused); the published route table in src/gateway.ts (in scope). No UI, CLI or background jobs.';
 
@@ -58,6 +65,8 @@ export interface RunTrees {
   runDiff: string;
   /** From 0.31.0, when the case has review rules: the rules file step B passes as `REVIEW_RULES`. */
   reviewRules?: string;
+  /** From 1.0.0: the private record of what the user typed, inside .git, which step B passes as `PRIVATE_RECORD`. */
+  privateRecord?: string;
 }
 
 export interface ReviewCase {
@@ -115,8 +124,17 @@ export function readReviewCases(): ReviewCase[] {
 }
 
 /** The fixed feature artifacts: spec, plan, tasks and the state file after implement's first round. */
-export function copyFeature(workspace: string): void {
-  cpSync(join(REVIEW_DIR, 'feature'), join(workspace, FEATURE_PATH), { recursive: true });
+export function copyFeature(workspace: string, version = '0.32.0'): void {
+  cpSync(featureSource(version), join(workspace, featurePath(version)), { recursive: true, filter: (source) => !source.endsWith('private-record.md') });
+}
+
+/** From 1.0.0: what the user typed, written where the plugin keeps it — inside .git, never in the working tree. */
+export async function writePrivateRecord(workspace: string): Promise<string> {
+  const common = resolve(workspace, (await execOrThrow('git', ['rev-parse', '--git-common-dir'], workspace)).trim());
+  const target = join(common, 'uroboros', 'private', 'pause-listing.md');
+  mkdirSync(dirname(target), { recursive: true });
+  cpSync(join(REVIEW_DIR, 'feature-goal', 'private-record.md'), target);
+  return target;
 }
 
 /** The case's project review rules (`REVIEW.md`), laid down with the feature artifacts, before the change. */
@@ -138,7 +156,7 @@ export function buildReviewCase(workspace: string, c: ReviewCase): void {
  */
 export async function prepareWorkspace(c: ReviewCase, version: string): Promise<{ workspace: string; trees?: RunTrees }> {
   const workspace = await createWorkspace('review');
-  copyFeature(workspace);
+  copyFeature(workspace, version);
   copyRules(workspace, c);
   await execOrThrow('git', ['add', '-A'], workspace);
   await execOrThrow('git', ['commit', '--quiet', '-m', 'feature-artifacts'], workspace);
@@ -146,12 +164,13 @@ export async function prepareWorkspace(c: ReviewCase, version: string): Promise<
     buildReviewCase(workspace, c);
     return { workspace };
   }
+  const privateRecord = goalForm(version) ? await writePrivateRecord(workspace) : undefined;
   const base = await snapshot(workspace);
   buildReviewCase(workspace, c);
   const round = await snapshot(workspace);
   const runDiff = await writeRunDiff(workspace, base, round);
   appendFileSync(
-    join(workspace, FEATURE_PATH, 'loop-state.md'),
+    join(workspace, featurePath(version), 'loop-state.md'),
     `- BASE TREE: ${base}
 - GATE BASELINE: ${base} — pass
 - ROUND TREE 1: ${round}
@@ -159,12 +178,15 @@ export async function prepareWorkspace(c: ReviewCase, version: string): Promise<
 ### Gate touched
 
 - round 1: none
-${atLeast(version, SURFACES_FROM) ? `\n### Shared code touched\n\n- round 1: none\n\n${SURFACES}\n` : ''}${atLeast(version, RED_FIRST_FROM) ? RED_FIRST : ''}${atLeast(version, WAVES_FROM) ? WAVES : ''}${atLeast(version, UNREQUESTED_FROM) ? UNREQUESTED : ''}`,
+${atLeast(version, SURFACES_FROM) ? `\n### Shared code touched\n\n- round 1: none\n${goalForm(version) ? '' : `\n${SURFACES}\n`}` : ''}${atLeast(version, RED_FIRST_FROM) ? RED_FIRST : ''}${atLeast(version, WAVES_FROM) ? (goalForm(version) ? WAVES_GOAL : WAVES) : ''}${atLeast(version, UNREQUESTED_FROM) ? UNREQUESTED : ''}`,
   );
   if (!atLeast(version, JUDGING_FROM)) return { workspace, trees: { base, round, runDiff } };
   const reviewRules = c.rules ? await writeReviewRules(workspace, base) : undefined;
-  appendFileSync(join(workspace, FEATURE_PATH, 'loop-state.md'), `\n${JUDGING_SOURCES}\n- REVIEW RULES: ${reviewRules ? 'REVIEW.md' : 'none'}\n`);
-  return { workspace, trees: { base, round, runDiff, reviewRules } };
+  appendFileSync(
+    join(workspace, featurePath(version), 'loop-state.md'),
+    `\n${goalForm(version) ? JUDGING_SOURCES_GOAL : JUDGING_SOURCES}\n- REVIEW RULES: ${reviewRules ? 'REVIEW.md' : 'none'}\n${privateRecord ? `- PRIVATE RECORD: ${privateRecord}\n` : ''}`,
+  );
+  return { workspace, trees: { base, round, runDiff, reviewRules, privateRecord } };
 }
 
 /** The root `REVIEW.md` as the base tree holds it, under its path, where the plugin writes it (implement protocol, Review rules). */
@@ -204,8 +226,8 @@ export function reviewerGuide(pluginDir: string, modelId: string, role = 'Review
 }
 
 /** The DECISION LOG lines of the fixed state file, so the prompt and the file say the same. */
-function decisionLog(): string {
-  const state = readFileSync(join(REVIEW_DIR, 'feature', 'loop-state.md'), 'utf8');
+function decisionLog(version: string): string {
+  const state = readFileSync(join(featureSource(version), 'loop-state.md'), 'utf8');
   return lines(state).filter((line) => /^- D\d+ /.test(line)).join('\n');
 }
 
@@ -227,11 +249,31 @@ export interface StepBInput {
   runDiff?: string;
   /** From 0.31.0, when the project has a `REVIEW.md`: the rules file. */
   reviewRules?: string;
+  /** From 1.0.0: the private record's path. */
+  privateRecord?: string;
 }
 
 /** The inputs step B passes after its `ROUND` line, which step C's refuter receives too (all but ROUND, FOLDS and the instruction line). */
 function sharedInputs(input: StepBInput): string[] {
-  const feature = join(input.workspace, FEATURE_PATH);
+  const feature = join(input.workspace, featurePath(input.version));
+  // Step B of the loop protocol (uroboros 1.0.0+): the state file with the private record, goal.md, then what implement adds.
+  if (goalForm(input.version)) {
+    if (!input.privateRecord) throw new Error(`step B of ${input.version} passes PRIVATE_RECORD`);
+    return [
+      'RUN_MODE: default',
+      `STATE_FILE: ${join(feature, 'loop-state.md')}`,
+      `PRIVATE_RECORD: ${input.privateRecord}`,
+      `GOAL_FILE: ${join(feature, 'goal.md')}`,
+      'DECISION LOG:',
+      decisionLog(input.version),
+      `RUN_DIFF: ${input.runDiff}`,
+      'DIFF STAT:',
+      input.diffStat,
+      `CHANGED FILES: ${input.changed.join(', ')}`,
+      `GATE RESULT: ${gateLine(input.gate)}`,
+      ...(input.reviewRules ? [`REVIEW_RULES: ${input.reviewRules}`] : []),
+    ];
+  }
   return [
     'RUN_MODE: default',
     `STATE_FILE: ${join(feature, 'loop-state.md')}`,
@@ -242,7 +284,7 @@ function sharedInputs(input: StepBInput): string[] {
     'DIFF STAT:',
     input.diffStat,
     'DECISION LOG:',
-    decisionLog(),
+    decisionLog(input.version),
     `GATE RESULT: ${gateLine(input.gate)}`,
     ...(input.reviewRules && atLeast(input.version, JUDGING_FROM) ? [`REVIEW_RULES: ${input.reviewRules}`] : []),
   ];
@@ -440,6 +482,7 @@ export async function runReviewMode(req: ReviewModeRequest): Promise<ModeResult>
         guide,
         runDiff: trees?.runDiff,
         reviewRules: trees?.reviewRules,
+        privateRecord: trees?.privateRecord,
       };
       const before = await treeState(workspace);
       const transcriptPath = join(dir, 'transcript.jsonl');

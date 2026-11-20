@@ -6,6 +6,7 @@ import type { AmbiguityScore } from './judge.ts';
 import type { RoleProfile } from './model-profile.ts';
 import type { ReviewerEval } from './review-eval.ts';
 import type { EarlierScore } from './earlier.ts';
+import type { FlowShape } from './flow.ts';
 import type { UroborosSource } from './uroboros-source.ts';
 import type { GateResult, HiddenTestsResult } from './verify.ts';
 import type { VerifierEval } from './verify-eval.ts';
@@ -35,6 +36,10 @@ export interface ModeResult {
   reviewerEval?: ReviewerEval;
   /** `implement` mode only: the implement phase's duration, cost and concurrency on a fixed feature, per variant. */
   implementEval?: ImplementEval;
+  /** Single-flow runs (uroboros 1.0.0+): the size recorded, the subagents dispatched, where the user's text was kept. */
+  flow?: FlowShape;
+  /** `small` mode only: the small eval version this result was measured with. */
+  smallEvalVersion?: number;
   /** Set when the mode does not apply to this uroboros version (e.g. `verify` before the verifier existed). */
   notApplicable?: string;
   ambiguity?: AmbiguityScore;
@@ -56,6 +61,8 @@ export interface RunResult {
   reviewEvalVersion?: number;
   /** The implement eval version (`implement` mode), compared apart from the scenario version. */
   implementEvalVersion?: number;
+  /** The small eval version (`small` mode), compared apart from the scenario version. */
+  smallEvalVersion?: number;
   uroboros: Omit<UroborosSource, 'dir'>;
   profile: RoleProfile;
   sdkVersion: string;
